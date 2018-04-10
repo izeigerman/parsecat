@@ -73,9 +73,6 @@ trait NumericParser extends TextParser {
   }
 
   private def handleConversionError[A](p: TextParser[A], numericType: String): TextParser[A] = {
-    p.handleErrorWith(e => {
-      ParserT[Id, String, Unit, A]((_, _, _, _) =>
-        ParseError(e.pos, s"value is not a valid $numericType", e.debugInfo).asLeft)
-    })
+    p.adaptError { case e => ParseError(e.pos, s"value is not a valid $numericType", e.debugInfo) }
   }
 }
