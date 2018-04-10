@@ -22,9 +22,14 @@
 package parsecat.parsers.json
 
 import cats.implicits._
+import parsecat.ParseError
 import parsecat.parsers.NumericParser
 
 trait JsonParser extends NumericParser {
+
+  final def parseJson(json: String): Either[ParseError, JsValue] = {
+    jsValue.parse(json, (), "[JsonParser] ")
+  }
 
   lazy val jsParser: TextParser[JsValue] = jsValue
 
@@ -72,8 +77,8 @@ trait JsonParser extends NumericParser {
   }
 
   lazy val jsValue: TextParser[JsValue] = {
-    toJsValue(jsString) <+> toJsValue(jsNull) <+> toJsValue(jsBoolean) <+> toJsValue(jsInt) <+>
-      toJsValue(jsLong) <+> toJsValue(jsDouble) <+> toJsValue(jsArray) <+> toJsValue(jsObject)
+    choice(toJsValue(jsString), toJsValue(jsNull), toJsValue(jsBoolean), toJsValue(jsInt),
+      toJsValue(jsLong), toJsValue(jsDouble), toJsValue(jsArray), toJsValue(jsObject))
   }
 
   private lazy val quotedString: TextParser[String] = {

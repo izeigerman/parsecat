@@ -31,6 +31,10 @@ import scala.util.matching.Regex
 trait TextParser extends Combinator {
   type TextParser[A] = ParserT.Parser[String, Unit, A]
 
+  final def parseText[A](parser: TextParser[A], text: String): Either[ParseError, A] = {
+    parser.parse(text, ())
+  }
+
   lazy val anyChar: TextParser[Char] =
     ParserT[Id, String, Unit, Char]((pos, input, context, info) => {
       if (input.size > pos.pos) {

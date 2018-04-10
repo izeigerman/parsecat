@@ -99,8 +99,12 @@ trait Combinator {
     }
   }
 
+  final def choice[F[_], S, C, A](ps: ParserT[F, S, C, A]*)(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+    parserTFoldR(ps)
+  }
+
   final def choice[F[_], S, C, A](ps: List[ParserT[F, S, C, A]])(implicit F: Monad[F]): ParserT[F, S, C, A] = {
-    ps.foldRight(parserTEmpty[F, S, C, A])((p1, p2) => p1 <+> p2)
+    parserTFoldR(ps)
   }
 
   final def between[F[_], S, C, A, OP, CL](open: ParserT[F, S, C, OP], close: ParserT[F, S, C, CL],
@@ -124,5 +128,10 @@ trait Combinator {
 
   protected final def parserTEmpty[F[_], S, C, A](implicit F: Monad[F]): ParserT[F, S, C, A] = {
     alternativeForParserT[F, S, C].empty[A]
+  }
+
+  protected final def parserTFoldR[F[_], S, C, A](ps: Seq[ParserT[F, S, C, A]])
+                                                 (implicit F: Monad[F]): ParserT[F, S, C, A] = {
+    ps.foldRight(parserTEmpty[F, S, C, A])((p1, p2) => p1 <+> p2)
   }
 }

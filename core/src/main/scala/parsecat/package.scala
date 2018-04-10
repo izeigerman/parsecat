@@ -24,4 +24,5 @@ package object parsecat {
   type Parser[S, C, A] = ParserT.Parser[S, C, A]
 
   object combinator extends Combinator
+  object instances extends ParserTInstances
 }

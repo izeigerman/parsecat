@@ -76,7 +76,7 @@ object ParserT extends ParserTInstances {
   }
 }
 
-private[parsecat] sealed trait ParserTInstances extends ParserTInstances0 {
+private[parsecat] trait ParserTInstances extends ParserTInstances0 {
   implicit def monadErrorForParserT[F[_], S, C](implicit F: Monad[F]): MonadError[({type λ[α] = ParserT[F, S, C, α]})#λ, ParseError] = {
     new ParserTMonadError[F, S, C] {
       override implicit val F0: Monad[F] = F
@@ -162,10 +162,7 @@ private[parsecat] sealed trait ParserTAlternative[F[_], S, C] extends Alternativ
       F0.flatMap(x.runParser(pos, input, context, info)) {
         case e1 @ Left(ParseError(newPos1, _, _)) =>
           F0.map(y.runParser(pos, input, context, info)) {
-            case e2 @ Left(ParseError(newPos2, _, _)) =>
-              val v1 = e1.value
-              val v2 = e2.value
-              if (newPos1.pos >= newPos2.pos) e1 else e2
+            case e2 @ Left(ParseError(newPos2, _, _)) => if (newPos1.pos >= newPos2.pos) e1 else e2
             case o => o
           }
         case o => F0.pure(o)
