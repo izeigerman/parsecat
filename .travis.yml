@@ -1,0 +1,24 @@
+language: scala
+
+script:
+  - sbt scalastyle && sbt test:scalastyle
+#  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && sbt coverageAggregate
+  - sbt clean package
+
+matrix:
+  include:
+    - jdk: oraclejdk8
+      scala: 2.12.2
+
+before_cache:
+  - find "$HOME/.sbt/" -name '*.lock' -print0 | xargs -0 rm
+  - find "$HOME/.ivy2/" -name 'ivydata-*.properties' -print0 | xargs -0 rm
+
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
+
+#after_success:
+#  - sbt coveralls
+
