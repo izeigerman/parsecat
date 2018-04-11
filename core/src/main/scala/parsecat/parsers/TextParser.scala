@@ -29,17 +29,21 @@ import parsecat._
 import scala.util.matching.Regex
 
 trait TextParser extends Combinator {
-  type TextParser[A] = ParserT.Parser[String, Unit, A]
+  type TextParser[A] = ParserT.Parser[String, Unit, TextPosition, A]
 
-  final def parseText[A](parser: TextParser[A], text: String): Either[ParseError, A] = {
-    parser.parse(text, ())
+  final def parseText[A](parser: TextParser[A], text: String, info: String): Either[ParseError[TextPosition], A] = {
+    parser.parse(text, (), TextPosition(0, 1, 1), info)
+  }
+
+  final def parseText[A](parser: TextParser[A], text: String): Either[ParseError[TextPosition], A] = {
+    parser.parse(text, (), TextPosition(0, 1, 1))
   }
 
   /**
     * Parses and returns any character.
     */
   lazy val anyChar: TextParser[Char] =
-    ParserT[Id, String, Unit, Char]((pos, input, context, info) => {
+    ParserT[Id, String, Unit, TextPosition, Char]((pos, input, context, info) => {
       if (input.size > pos.pos) {
         val ch = input.charAt(pos.pos)
         val newPos = getNextPos(ch, pos)
@@ -54,7 +58,7 @@ trait TextParser extends Combinator {
     * Returns the parsed character.
     */
   final def satisfy(p: Char => Boolean): TextParser[Char] = {
-    ParserT[Id, String, Unit, Char]((pos, input, context, info) => {
+    ParserT[Id, String, Unit, TextPosition, Char]((pos, input, context, info) => {
       if (input.size > pos.pos) {
         val ch = input.charAt(pos.pos)
         val newPos = getNextPos(ch, pos)
@@ -74,7 +78,7 @@ trait TextParser extends Combinator {
     * Returns a string that matched the regular expression.
     */
   final def regex(r: Regex): TextParser[String] = {
-    ParserT[Id, String, Unit, String]((pos, input, context, info) => {
+    ParserT[Id, String, Unit, TextPosition, String]((pos, input, context, info) => {
       if (input.size > pos.pos) {
         val regexMatch = r.findPrefixOf(TextParser.ShiftedString(input, pos.pos))
         regexMatch
@@ -91,7 +95,7 @@ trait TextParser extends Combinator {
     * Returns the parsed string.
     */
   final def string(s: String): TextParser[String] = {
-    ParserT[Id, String, Unit, String]((pos, input, context, info) => {
+    ParserT[Id, String, Unit, TextPosition, String]((pos, input, context, info) => {
       if (input.size >= (pos.pos + s.length)) {
         if (input.startsWith(s, pos.pos)) {
           ParseOutput(getNextPos(s, pos), input, context, s).asRight
@@ -232,15 +236,15 @@ trait TextParser extends Combinator {
     p.map(_.mkString(""))
   }
 
-  protected final def getNextPos(str: String, pos: Position): Position = {
+  protected final def getNextPos(str: String, pos: TextPosition): TextPosition = {
     str.foldLeft(pos)((p, c) => getNextPos(c, p))
   }
 
-  protected final def getNextPos(char: Char, pos: Position): Position = {
+  protected final def getNextPos(char: Char, pos: TextPosition): TextPosition = {
     if (char == '\n') {
-      Position(pos.pos + 1, pos.row + 1, 1)
+      TextPosition(pos.pos + 1, pos.row + 1, 1)
     } else {
-      Position(pos.pos + 1, pos.row, pos.col + 1)
+      TextPosition(pos.pos + 1, pos.row, pos.col + 1)
     }
   }
 }

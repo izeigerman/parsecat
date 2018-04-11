@@ -30,29 +30,29 @@ trait Combinator {
   /**
     * Applies the given parser zero or more times.
     */
-  final def many[F[_], S, C, A](p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, List[A]] = {
-    lazy val nested: ParserT[F, S, C, List[A]] = bindCons(p, nested) <+> parserTPure(Nil)
+  final def many[F[_], S, C, P, A](p: ParserT[F, S, C, P, A])(implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, List[A]] = {
+    lazy val nested: ParserT[F, S, C, P, List[A]] = bindCons(p, nested) <+> parserTPure(Nil)
     nested
   }
 
   /**
     * Applies the given parser one or more times.
     */
-  final def many1[F[_], S, C, A](p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, List[A]] = {
+  final def many1[F[_], S, C, P, A](p: ParserT[F, S, C, P, A])(implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, List[A]] = {
     bindCons(p, many(p))
   }
 
   /**
     * Applies the given parser zero or more times ignoring its result.
     */
-  final def skipMany[F[_], S, C, A](p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, Unit] = {
+  final def skipMany[F[_], S, C, P, A](p: ParserT[F, S, C, P, A])(implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, Unit] = {
     many(p).map(_ => ())
   }
 
   /**
     * Applies the given parser one or more times ignoring its result.
     */
-  final def skipMany1[F[_], S, C, A](p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, Unit] = {
+  final def skipMany1[F[_], S, C, P, A](p: ParserT[F, S, C, P, A])(implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, Unit] = {
     many1(p).map(_ => ())
   }
 
@@ -60,7 +60,7 @@ trait Combinator {
     * Applies the given parser once and ignores its result regardless of whether
     * it was a success or not.
     */
-  final def optional[F[_], S, C, A](p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, Unit] = {
+  final def optional[F[_], S, C, P, A](p: ParserT[F, S, C, P, A])(implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, Unit] = {
     p.map(_ => ()) <+> parserTPure(())
   }
 
@@ -68,8 +68,9 @@ trait Combinator {
     * Parses zero or more occurrences of parser `p` separated by `sep`.
     * Returns a list of values produced by parser `p`.
     */
-  final def sepBy[F[_], S, C, A, B](p: ParserT[F, S, C, A],
-                                    sep: ParserT[F, S, C, B])(implicit F: Monad[F]): ParserT[F, S, C, List[A]] = {
+  final def sepBy[F[_], S, C, A, P, B](p: ParserT[F, S, C, P, A],
+                                       sep: ParserT[F, S, C, P, B])
+                                      (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, List[A]] = {
     val first = for {
       f <- optionMaybe(p)
       s <- optionMaybe(sep)
@@ -82,8 +83,8 @@ trait Combinator {
         case (optFirst, optSep) =>
           optFirst
             .map(f => optSep
-              .map(_ => bindCons(parserTPure[F, S, C, A](f), remaining)) // separator was found, proceed to subsequent parsing.
-              .getOrElse(parserTPure[F, S, C, List[A]](List(f)))) // separator was not found, return a single parsed result.
+              .map(_ => bindCons(parserTPure[F, S, C, P, A](f), remaining)) // separator was found, proceed to subsequent parsing.
+              .getOrElse(parserTPure[F, S, C, P, List[A]](List(f)))) // separator was not found, return a single parsed result.
             .getOrElse(parserTPure(Nil)) // parsing of the first occurrence failed, return empty result.
       }
     // See the comment to sepBy1(). We want to ignore the possible parsing error for the first occurrence,
@@ -96,9 +97,10 @@ trait Combinator {
     * Parses one or more occurrences of parser `p` separated by `sep`.
     * Returns a list of values produced by parser `p`.
     */
-  final def sepBy1[F[_], S, C, A, B](p: ParserT[F, S, C, A],
-                                     sep: ParserT[F, S, C, B])(implicit F: Monad[F]): ParserT[F, S, C, List[A]] = {
-    lazy val nested: ParserT[F, S, C, List[A]] = bindCons(p, optionMaybe(sep).flatMap(o => o.map(_ => nested).getOrElse(parserTPure(Nil))))
+  final def sepBy1[F[_], S, C, A, P, B](p: ParserT[F, S, C, P, A],
+                                        sep: ParserT[F, S, C, P, B])
+                                       (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, List[A]] = {
+    lazy val nested: ParserT[F, S, C, P, List[A]] = bindCons(p, optionMaybe(sep).flatMap(o => o.map(_ => nested).getOrElse(parserTPure(Nil))))
     nested
     // The implementation which relies on the many() combinator swallows the original parsing error.
     // We should ignore separator parsing errors, but if the separator was parsed successfully
@@ -110,14 +112,16 @@ trait Combinator {
   /**
     * Tries to apply parser `p` and returns the value `a` if the operation was unsuccessful.
     */
-  final def option[F[_], S, C, A](a: A, p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+  final def option[F[_], S, C, P, A](a: A, p: ParserT[F, S, C, P, A])
+                                    (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, A] = {
     p <+> parserTPure(a)
   }
 
   /**
     * Tries to apply parser `p`. Returns [[Some]] containing a result or [[None]] if the parsing failed.
     */
-  final def optionMaybe[F[_], S, C, A](p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, Option[A]] = {
+  final def optionMaybe[F[_], S, C, P, A](p: ParserT[F, S, C, P, A])
+                                         (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, Option[A]] = {
     p.map(Some(_).asInstanceOf[Option[A]]) <+> parserTPure(None.asInstanceOf[Option[A]])
   }
 
@@ -125,11 +129,12 @@ trait Combinator {
     * Applies parser `p` exactly `n` times. Returns empty list if the `n` is less than or equals to zero,
     * otherwise returns a list of `n` values produced by parser `p`.
     */
-  final def count[F[_], S, C, A](n: Int, p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, List[A]] = {
+  final def count[F[_], S, C, P, A](n: Int, p: ParserT[F, S, C, P, A])
+                                   (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, List[A]] = {
     if (n <= 0) {
       parserTPure(Nil)
     } else {
-      (0 until n).map(_ => p).foldRight(parserTPure[F, S, C, List[A]](Nil))((x, xs) => bindCons(x, xs))
+      (0 until n).map(_ => p).foldRight(parserTPure[F, S, C, P, List[A]](Nil))((x, xs) => bindCons(x, xs))
     }
   }
 
@@ -137,7 +142,8 @@ trait Combinator {
     * Applies the given parsers in order until one of them succeeds. Returns the result of
     * a parser which succeeded.
     */
-  final def choice[F[_], S, C, A](ps: ParserT[F, S, C, A]*)(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+  final def choice[F[_], S, C, P, A](ps: ParserT[F, S, C, P, A]*)
+                                    (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, A] = {
     parserTFoldR(ps)
   }
 
@@ -145,15 +151,17 @@ trait Combinator {
     * Applies the parsers in the given list in order until one of them succeeds. Returns the result of
     * a parser which succeeded.
     */
-  final def choice[F[_], S, C, A](ps: List[ParserT[F, S, C, A]])(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+  final def choice[F[_], S, C, P, A](ps: List[ParserT[F, S, C, P, A]])
+                                    (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, A] = {
     parserTFoldR(ps)
   }
 
   /**
     * Parses `open` then applies `p` followed by `close`. Returns result of the `p` parser.
     */
-  final def between[F[_], S, C, A, OP, CL](open: ParserT[F, S, C, OP], close: ParserT[F, S, C, CL],
-                                           p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+  final def between[F[_], S, C, P, A, OP, CL](open: ParserT[F, S, C, P, OP], close: ParserT[F, S, C, P, CL],
+                                              p: ParserT[F, S, C, P, A])
+                                             (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, A] = {
     for {
       _ <- open
       a <- p
@@ -165,7 +173,8 @@ trait Combinator {
     * Applies the given parser and returns its result while preserving the initial
     * position, input and context.
     */
-  final def test[F[_], S, C, A](p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+  final def test[F[_], S, C, P, A](p: ParserT[F, S, C, P, A])
+                                  (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, A] = {
     ParserT.apply((pos, input, context, info) => {
       F.map(p.runParserT(pos, input, context, info)) {
         case Right(ParseOutput(_, _, _, output)) => ParseOutput(pos, input, context, output).asRight
@@ -174,22 +183,22 @@ trait Combinator {
     })
   }
 
-  final def bindCons[F[_], S, C, A](p: ParserT[F, S, C, A],
-                                    tail: => ParserT[F, S, C, List[A]])
-                                   (implicit F: Monad[F]): ParserT[F, S, C, List[A]] = {
+  final def bindCons[F[_], S, C, P, A](p: ParserT[F, S, C, P, A],
+                                       tail: => ParserT[F, S, C, P, List[A]])
+                                      (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, List[A]] = {
     p.flatMap(x => tail.map(xs => x :: xs))
   }
 
-  protected final def parserTPure[F[_], S, C, A](a: A)(implicit F: Monad[F]): ParserT[F, S, C, A] = {
-    applicativeForParserT[F, S, C].pure(a)
+  protected final def parserTPure[F[_], S, C, P, A](a: A)(implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, A] = {
+    applicativeForParserT[F, S, C, P].pure(a)
   }
 
-  protected final def parserTEmpty[F[_], S, C, A](implicit F: Monad[F]): ParserT[F, S, C, A] = {
-    alternativeForParserT[F, S, C].empty[A]
+  protected final def parserTEmpty[F[_], S, C, P, A](implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, A] = {
+    alternativeForParserT[F, S, C, P].empty[A]
   }
 
-  protected final def parserTFoldR[F[_], S, C, A](ps: Seq[ParserT[F, S, C, A]])
-                                                 (implicit F: Monad[F]): ParserT[F, S, C, A] = {
-    ps.foldRight(parserTEmpty[F, S, C, A])((p1, p2) => p1 <+> p2)
+  protected final def parserTFoldR[F[_], S, C, P, A](ps: Seq[ParserT[F, S, C, P, A]])
+                                                    (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, A] = {
+    ps.foldRight(parserTEmpty[F, S, C, P, A])((p1, p2) => p1 <+> p2)
   }
 }

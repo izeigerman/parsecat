@@ -19,10 +19,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+package parsecat.parsers
 
-package object parsecat {
-  type Parser[S, C, P, A] = ParserT.Parser[S, C, P, A]
+import cats._
+import cats.instances.int._
 
-  object combinator extends Combinator
-  object instances extends ParserTInstances
+final case class TextPosition(pos: Int, row: Int, col: Int)
+
+object TextPosition {
+  implicit val showForTextPosition: Show[TextPosition] = Show.show(p => s"row ${p.row}, column ${p.col}")
+  implicit val orderForTextPosition: Order[TextPosition] = Order.by(_.pos)
 }

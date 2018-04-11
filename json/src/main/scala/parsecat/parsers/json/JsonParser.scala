@@ -23,12 +23,12 @@ package parsecat.parsers.json
 
 import cats.implicits._
 import parsecat.ParseError
-import parsecat.parsers.NumericParser
+import parsecat.parsers._
 
 trait JsonParser extends NumericParser {
 
-  final def parseJson(json: String): Either[ParseError, JsValue] = {
-    jsValue.parse(json, (), "[JsonParser] ")
+  final def parseJson(json: String): Either[ParseError[TextPosition], JsValue] = {
+    parseText(jsParser, json, "[JsonParser] ")
   }
 
   lazy val jsParser: TextParser[JsValue] = jsValue
