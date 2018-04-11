@@ -162,12 +162,12 @@ trait Combinator {
   }
 
   /**
-    * Applies the given parser and returns its result while preserving the original
+    * Applies the given parser and returns its result while preserving the initial
     * position, input and context.
     */
   final def test[F[_], S, C, A](p: ParserT[F, S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, A] = {
     ParserT.apply((pos, input, context, info) => {
-      F.map(p.runParser(pos, input, context, info)) {
+      F.map(p.runParserT(pos, input, context, info)) {
         case Right(ParseOutput(_, _, _, output)) => ParseOutput(pos, input, context, output).asRight
         case err => err
       }

@@ -31,14 +31,14 @@ final case class ParseError(pos: Position, error: String, debugInfo: String)
 
 final case class ParseOutput[S, C, A](pos: Position, input: S, context: C, output: A)
 
-final class ParserT[F[_], S, C, A](val runParser: (Position, S, C, String) => F[Either[ParseError, ParseOutput[S, C, A]]]) {
+final class ParserT[F[_], S, C, A](val runParserT: (Position, S, C, String) => F[Either[ParseError, ParseOutput[S, C, A]]]) {
 
   def parse(input: S, context: C)(implicit F: Monad[F]): F[Either[ParseError, A]] = {
     parse(input, context, "[Parsecat] ")
   }
 
   def parse(input: S, context: C, debugInfo: String)(implicit F: Monad[F]): F[Either[ParseError, A]] = {
-    F.map(this.runParser(Position(0, 1, 1), input, context, debugInfo)) {
+    F.map(this.runParserT(Position(0, 1, 1), input, context, debugInfo)) {
       case Left(e) => e.asLeft
       case Right(o) => o.output.asRight
     }
@@ -46,7 +46,7 @@ final class ParserT[F[_], S, C, A](val runParser: (Position, S, C, String) => F[
 
   def map[B](f: A => B)(implicit F: Monad[F]): ParserT[F, S, C, B] = {
     ParserT((pos: Position, input: S, context: C, info: String) => {
-      F.map(this.runParser(pos, input, context, info)) {
+      F.map(this.runParserT(pos, input, context, info)) {
         case Right(ParseOutput(newPos, newInput, newContext, output)) =>
           ParseOutput(newPos, newInput, newContext, f(output)).asRight
         case Left(e) =>
@@ -57,9 +57,9 @@ final class ParserT[F[_], S, C, A](val runParser: (Position, S, C, String) => F[
 
   def flatMap[B](f: A => ParserT[F, S, C, B])(implicit F: Monad[F]): ParserT[F, S, C, B] = {
     ParserT((pos: Position, input: S, context: C, info: String) => {
-        F.flatMap(this.runParser(pos, input, context, info)) {
+        F.flatMap(this.runParserT(pos, input, context, info)) {
           case Right(ParseOutput(newPos, newInput, newContext, output)) =>
-            f(output).runParser(newPos, newInput, newContext, info)
+            f(output).runParserT(newPos, newInput, newContext, info)
           case Left(e) =>
             F.pure(e.asLeft)
         }
@@ -75,11 +75,11 @@ object ParserT extends ParserTInstances {
     new ParserT[F, S, C, A](runParser)
   }
 
-  def parseError[F[_], S, C, A](e: ParseError)(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+  def parserTError[F[_], S, C, A](e: ParseError)(implicit F: Monad[F]): ParserT[F, S, C, A] = {
     ParserT((_, _, _, _) => F.pure(e.asLeft))
   }
 
-  def parseOutput[F[_], S, C, A](o: ParseOutput[S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+  def parserTOutput[F[_], S, C, A](o: ParseOutput[S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, A] = {
     ParserT((_, _, _, _) => F.pure(o.asRight))
   }
 
@@ -149,9 +149,9 @@ private[parsecat] sealed trait ParserTApplicative[F[_], S, C] extends Applicativ
 
   override def ap[A, B](ff: ParserT[F, S, C, A => B])(fa: ParserT[F, S, C, A]): ParserT[F, S, C, B] = {
     ParserT((pos, input, context, info) => {
-      F0.flatMap(ff.runParser(pos, input, context, info)) {
+      F0.flatMap(ff.runParserT(pos, input, context, info)) {
         case Right(ParseOutput(newPos, newInput, newContext, f)) =>
-          fa.map(f).runParser(newPos, newInput, newContext, info)
+          fa.map(f).runParserT(newPos, newInput, newContext, info)
         case Left(e) =>
           F0.pure(e.asLeft)
       }
@@ -171,9 +171,9 @@ private[parsecat] sealed trait ParserTAlternative[F[_], S, C] extends Alternativ
 
   override def combineK[A](x: ParserT[F, S, C, A], y: ParserT[F, S, C, A]): ParserT[F, S, C, A] = {
     ParserT((pos, input, context, info) => {
-      F0.flatMap(x.runParser(pos, input, context, info)) {
+      F0.flatMap(x.runParserT(pos, input, context, info)) {
         case e1 @ Left(ParseError(newPos1, _, _)) =>
-          F0.map(y.runParser(pos, input, context, info)) {
+          F0.map(y.runParserT(pos, input, context, info)) {
             case e2 @ Left(ParseError(newPos2, _, _)) => if (newPos1.pos >= newPos2.pos) e1 else e2
             case o => o
           }
@@ -196,7 +196,7 @@ private[parsecat] sealed trait ParserTMonad[F[_], S, C] extends Monad[({type λ[
       val init = ParseOutput(pos, input, context, a).asRight[ParseError]
       F0.tailRecM[Either[ParseError, ParseOutput[S, C, A]], Either[ParseError, ParseOutput[S, C, B]]](init) {
         case Right(ParseOutput(newPos, newInput, newContext, newA)) =>
-          F0.map(f(newA).runParser(newPos, newInput, newContext, info)) {
+          F0.map(f(newA).runParserT(newPos, newInput, newContext, info)) {
             case Right(ParseOutput(p, i, ctx, Left(aOutput))) =>
               ParseOutput(p, i, ctx, aOutput).asRight.asLeft
             case Right(ParseOutput(p, i, ctx, Right(bOutput))) =>
@@ -216,13 +216,13 @@ private[parsecat] sealed trait ParserTMonadError[F[_], S, C] extends MonadError[
 
   override implicit def F0: Monad[F]
 
-  override def raiseError[A](e: ParseError): ParserT[F, S, C, A] = ParserT.parseError(e)
+  override def raiseError[A](e: ParseError): ParserT[F, S, C, A] = ParserT.parserTError(e)
 
   override def handleErrorWith[A](fa: ParserT[F, S, C, A])(f: ParseError => ParserT[F, S, C, A]): ParserT[F, S, C, A] = {
     ParserT((pos, input, context, info) => {
-      F0.flatMap(fa.runParser(pos, input, context, info)) {
+      F0.flatMap(fa.runParserT(pos, input, context, info)) {
         case Left(e) =>
-          f(e).runParser(pos, input, context, info)
+          f(e).runParserT(pos, input, context, info)
         case o =>
           F0.pure(o)
       }
