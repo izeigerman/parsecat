@@ -74,6 +74,18 @@ object ParserT extends ParserTInstances {
   def apply[F[_], S, C, A](runParser: (Position, S, C, String) => F[Either[ParseError, ParseOutput[S, C, A]]]): ParserT[F, S, C, A] = {
     new ParserT[F, S, C, A](runParser)
   }
+
+  def parseError[F[_], S, C, A](e: ParseError)(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+    ParserT((_, _, _, _) => F.pure(e.asLeft))
+  }
+
+  def parseOutput[F[_], S, C, A](o: ParseOutput[S, C, A])(implicit F: Monad[F]): ParserT[F, S, C, A] = {
+    ParserT((_, _, _, _) => F.pure(o.asRight))
+  }
+
+  def liftP[F[_], S, C, A](p: F[Either[ParseError, ParseOutput[S, C, A]]]): ParserT[F, S, C, A] = {
+    ParserT((_, _, _, _) => p)
+  }
 }
 
 private[parsecat] trait ParserTInstances extends ParserTInstances0 {
@@ -204,9 +216,7 @@ private[parsecat] sealed trait ParserTMonadError[F[_], S, C] extends MonadError[
 
   override implicit def F0: Monad[F]
 
-  override def raiseError[A](e: ParseError): ParserT[F, S, C, A] = {
-    ParserT[F, S, C, A]((_, _, _, _) => F0.pure(e.asLeft))
-  }
+  override def raiseError[A](e: ParseError): ParserT[F, S, C, A] = ParserT.parseError(e)
 
   override def handleErrorWith[A](fa: ParserT[F, S, C, A])(f: ParseError => ParserT[F, S, C, A]): ParserT[F, S, C, A] = {
     ParserT((pos, input, context, info) => {

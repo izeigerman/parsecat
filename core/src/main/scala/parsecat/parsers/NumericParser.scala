@@ -21,7 +21,6 @@
  */
 package parsecat.parsers
 
-import cats.Id
 import cats.implicits._
 import parsecat._
 
