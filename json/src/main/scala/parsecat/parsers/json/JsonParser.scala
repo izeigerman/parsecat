@@ -51,7 +51,7 @@ trait JsonParser extends NumericParser {
     for {
       _ <- delimiters
       _ <- char('[')
-      values <- sepBy(delimiters >> jsValue, char(','))
+      values <- emptyBlockOrValues(char(']'), sepBy1(delimiters >> jsValue, char(',')))
       _ <- delimiters
       _ <- char(']')
     } yield JsArray(values)
@@ -70,7 +70,7 @@ trait JsonParser extends NumericParser {
     for {
       _ <- delimiters
       _ <- char('{')
-      fields <- sepBy(jsObjectField, char(','))
+      fields <- emptyBlockOrValues(char('}'), sepBy1(jsObjectField, char(',')))
       _ <- delimiters
       _ <- char('}')
     } yield JsObject(fields.toMap)
@@ -87,5 +87,13 @@ trait JsonParser extends NumericParser {
 
   private def toJsValue[A <: JsValue](p: TextParser[A]): TextParser[JsValue] = {
     p.map(_.asInstanceOf[JsValue])
+  }
+
+  private def emptyBlockOrValues[A, B](endsWith: TextParser[A], values: TextParser[List[B]]): TextParser[List[B]] = {
+    testEmptyBlock(endsWith).map(_ => Nil.asInstanceOf[List[B]]) <+> values
+  }
+
+  private def testEmptyBlock[A](endsWith: TextParser[A]): TextParser[Unit] = {
+    test(delimiters >> endsWith).map(_ => ())
   }
 }
