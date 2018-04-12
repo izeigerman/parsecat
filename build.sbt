@@ -22,6 +22,7 @@
 
 val CatsVersion = "1.1.0"
 val ScalaTestVersion = "3.0.5"
+val DisciplineVersion = "0.8"
 
 val CommonSettings = Seq(
   organization := "com.github.izeigerman",
@@ -35,15 +36,21 @@ val CommonSettings = Seq(
     "-language:postfixOps",
     "-language:implicitConversions",
     "-language:higherKinds",
-    "-Ypartial-unification"),
-
-  parallelExecution in Test := false
+    "-Ypartial-unification")
 )
 
 val ParsecatSettings = CommonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-core" % CatsVersion,
-    "org.scalatest" %% "scalatest" % ScalaTestVersion % "test->*"
+  )
+)
+
+val ParsecatTestsSettings = CommonSettings ++ Seq(
+  libraryDependencies ++= Seq(
+    "org.typelevel" %% "cats-laws" % CatsVersion % "test->*",
+    "org.typelevel" %% "cats-testkit" % CatsVersion % "test->*",
+    "org.scalatest" %% "scalatest" % ScalaTestVersion % "test->*",
+    "org.typelevel" %% "discipline" % DisciplineVersion % "test->*"
   )
 )
 
@@ -54,12 +61,19 @@ val NoPublishSettings = CommonSettings ++ Seq(
 
 lazy val parsecatRoot = (project in file("."))
   .settings(NoPublishSettings: _*)
-  .aggregate(parsecatCore, parsecatJson)
+  .aggregate(parsecatCore, parsecatJson, parsecatTests)
 
 lazy val parsecatCore = (project in file("core"))
+  .settings(moduleName := "parsecat-core", name := "Parsecat core")
   .settings(ParsecatSettings: _*)
 
 lazy val parsecatJson = (project in file("json"))
+  .settings(moduleName := "parsecat-json", name := "Parsecat JSON")
   .settings(ParsecatSettings: _*)
+  .dependsOn(parsecatCore)
+
+lazy val parsecatTests = (project in file("tests"))
+  .settings(moduleName := "parsecat-tests")
+  .settings(ParsecatTestsSettings: _*)
   .dependsOn(parsecatCore)
 
