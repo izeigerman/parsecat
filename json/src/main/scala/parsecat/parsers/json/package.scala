@@ -21,4 +21,4 @@
  */
 package parsecat.parsers
 
-package object json extends JsonParser
+package object json extends Json

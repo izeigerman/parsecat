@@ -22,6 +22,6 @@
 package parsecat
 
 package object parsers {
-  object text extends TextParser
-  object numeric extends NumericParser
+  object text extends Text
+  object numeric extends Numeric
 }

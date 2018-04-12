@@ -81,7 +81,7 @@ object ParserT extends ParserTInstances {
     ParserT((_, _, _, _) => F.pure(o.asRight))
   }
 
-  def liftP[F[_], S, C, P, A](p: F[Either[ParseError[P], ParseOutput[S, C, P, A]]]): ParserT[F, S, C, P, A] = {
+  def lift[F[_], S, C, P, A](p: F[Either[ParseError[P], ParseOutput[S, C, P, A]]]): ParserT[F, S, C, P, A] = {
     ParserT((_, _, _, _) => p)
   }
 }
@@ -178,8 +178,9 @@ private[parsecat] sealed trait ParserTAlternative[F[_], S, C, P]
   override def combineK[A](x: ParserT[F, S, C, P, A], y: ParserT[F, S, C, P, A]): ParserT[F, S, C, P, A] = {
     ParserT((pos, input, context, info) => {
       F0.flatMap(x.runParserT(pos, input, context, info)) {
-        case e1 @ Left(ParseError(newPos1, _, _)) =>
+        case e1 @ Left(ParseError(newPos1, e1msg, _)) =>
           F0.map(y.runParserT(pos, input, context, info)) {
+            case r if e1msg == "empty" => r
             case e2 @ Left(ParseError(newPos2, _, _)) => if (P0.gteqv(newPos1, newPos2)) e1 else e2
             case o => o
           }

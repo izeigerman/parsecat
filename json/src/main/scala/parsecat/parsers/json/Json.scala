@@ -25,7 +25,7 @@ import cats.implicits._
 import parsecat.ParseError
 import parsecat.parsers._
 
-trait JsonParser extends NumericParser {
+trait Json extends Numeric {
 
   final def parseJson(json: String): Either[ParseError[TextPosition], JsValue] = {
     parseText(jsParser, json, "[JsonParser] ")

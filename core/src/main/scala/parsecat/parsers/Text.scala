@@ -28,7 +28,7 @@ import parsecat._
 
 import scala.util.matching.Regex
 
-trait TextParser extends Combinator {
+trait Text extends Combinator {
   type TextParser[A] = ParserT.Parser[String, Unit, TextPosition, A]
 
   final def parseText[A](parser: TextParser[A], text: String, info: String): Either[ParseError[TextPosition], A] = {
@@ -38,20 +38,6 @@ trait TextParser extends Combinator {
   final def parseText[A](parser: TextParser[A], text: String): Either[ParseError[TextPosition], A] = {
     parser.parse(text, (), TextPosition(0, 1, 1))
   }
-
-  /**
-    * Parses and returns any character.
-    */
-  lazy val anyChar: TextParser[Char] =
-    ParserT[Id, String, Unit, TextPosition, Char]((pos, input, context, info) => {
-      if (input.size > pos.pos) {
-        val ch = input.charAt(pos.pos)
-        val newPos = getNextPos(ch, pos)
-        ParseOutput(newPos, input, context, ch).asRight
-      } else {
-        ParseError(pos, "unexpected end of input", info).asLeft
-      }
-    })
 
   /**
     * The parser which succeeds for any character that satisfies the given predicate.
@@ -80,7 +66,7 @@ trait TextParser extends Combinator {
   final def regex(r: Regex): TextParser[String] = {
     ParserT[Id, String, Unit, TextPosition, String]((pos, input, context, info) => {
       if (input.size > pos.pos) {
-        val regexMatch = r.findPrefixOf(TextParser.ShiftedString(input, pos.pos))
+        val regexMatch = r.findPrefixOf(Text.ShiftedString(input, pos.pos))
         regexMatch
           .map(out => ParseOutput(getNextPos(out, pos), input, context, out).asRight)
           .getOrElse(ParseError(pos, s"input doesn't match regex '$r'", info).asLeft)
@@ -112,121 +98,92 @@ trait TextParser extends Combinator {
   /**
     * Parses and returns the specified character.
     */
-  final def char(expected: Char): TextParser[Char] = {
-    satisfy(_ == expected)
-  }
+  final def char(expected: Char): TextParser[Char] = satisfy(_ == expected)
 
   /**
     * Parses and returns any character that is present in the given string.
     */
-  final def oneOf(str: String): TextParser[Char] = {
-    satisfy(c => str.contains(c))
-  }
+  final def oneOf(str: String): TextParser[Char] = satisfy(c => str.contains(c))
 
   /**
     * Parses and returns any character that is present in the given list.
     */
-  final def oneOf(str: List[Char]): TextParser[Char] = {
-    satisfy(c => str.contains(c))
-  }
+  final def oneOf(str: List[Char]): TextParser[Char] = satisfy(c => str.contains(c))
 
   /**
     * Parses and returns any character that is NOT present in the given string.
     */
-  final def noneOf(str: String): TextParser[Char] = {
-    satisfy(c => !str.contains(c))
-  }
+  final def noneOf(str: String): TextParser[Char] = satisfy(c => !str.contains(c))
 
   /**
     * Parses and returns any character that is NOT present in the given list.
     */
-  final def noneOf(str: List[Char]): TextParser[Char] = {
-    satisfy(c => !str.contains(c))
-  }
+  final def noneOf(str: List[Char]): TextParser[Char] = satisfy(c => !str.contains(c))
+
+  /**
+    * Parses and returns any character.
+    */
+  lazy val anyChar: TextParser[Char] = satisfy(_ => true)
 
   /**
     * Parses and returns a whitespace character.
     */
-  lazy val space: TextParser[Char] = {
-    char(' ')
-  }
+  lazy val space: TextParser[Char] = char(' ')
 
   /**
     * Skips zero or more whitespace characters.
     */
-  lazy val spaces: TextParser[Unit] = {
-    skipMany(space)
-  }
+  lazy val spaces: TextParser[Unit] = skipMany(space)
 
   /**
     * Parses and returns a tab character.
     */
-  lazy val tab: TextParser[Char] = {
-    char('\t')
-  }
+  lazy val tab: TextParser[Char] = char('\t')
 
   /**
     * Parses and returns an upper case letter.
     */
-  lazy val upper: TextParser[Char] = {
-    satisfy(_.isUpper)
-  }
+  lazy val upper: TextParser[Char] = satisfy(_.isUpper)
 
   /**
     * Parses and returns a lower case letter.
     */
-  lazy val lower: TextParser[Char] = {
-    satisfy(_.isLower)
-  }
+  lazy val lower: TextParser[Char] = satisfy(_.isLower)
 
   /**
     * Parses and returns a letter or digit ('0' - '9').
     */
-  lazy val alphaNum: TextParser[Char] = {
-    satisfy(_.isLetterOrDigit)
-  }
+  lazy val alphaNum: TextParser[Char] = satisfy(_.isLetterOrDigit)
 
   /**
     * Parses and returns a letter.
     */
-  lazy val letter: TextParser[Char] = {
-    satisfy(_.isLetter)
-  }
+  lazy val letter: TextParser[Char] = satisfy(_.isLetter)
 
   /**
     * Parses and returns a digit ('0' - '9').
     */
-  lazy val digit: TextParser[Char] = {
-    satisfy(_.isDigit)
-  }
+  lazy val digit: TextParser[Char] = satisfy(_.isDigit)
 
   /**
     * Parses and returns a newline character.
     */
-  lazy val newline: TextParser[Char] = {
-    char('\n')
-  }
+  lazy val newline: TextParser[Char] = char('\n')
 
   /**
     * Parses a '\r' character followed by a newline character. Returns a newline character.
     */
-  lazy val crlf: TextParser[Char] = {
-    char('\r') *> char('\n')
-  }
+  lazy val crlf: TextParser[Char] = char('\r') *> char('\n')
 
   /**
     * The parser which succeeds if the end of line occurs. Returns a newline character.
     */
-  lazy val eol: TextParser[Char] = {
-    newline <+> crlf
-  }
+  lazy val eol: TextParser[Char] = newline <+> crlf
 
   /**
     * Skip zero or more spaces, tabs and end of lines in any combination.
     */
-  lazy val delimiters: TextParser[Unit] = {
-    skipMany(space <+> tab <+> eol)
-  }
+  lazy val delimiters: TextParser[Unit] = skipMany(space <+> tab <+> eol)
 
   /**
     * Transforms the given parser which produces a list of characters into the parser
@@ -249,7 +206,7 @@ trait TextParser extends Combinator {
   }
 }
 
-object TextParser {
+object Text {
   private[parsecat] final case class ShiftedString(original: String, offset: Int) extends CharSequence {
 
     override def length(): Int = original.length - offset
