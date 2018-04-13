@@ -183,6 +183,45 @@ trait Combinator {
     })
   }
 
+  /**
+    * Applies parser `then` and returns its result only if the parser `if` succeeds, otherwise the result
+    * of the parser `if` is returned.
+    */
+  final def ifThen[F[_], S, C, P, A, B](`if`: ParserT[F, S, C, P, A], `then`: => ParserT[F, S, C, P, B])
+                                       (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, B] = {
+    `if` >> `then`
+  }
+
+  /**
+    * Applies parser `then` and returns its result only if the parser `if` succeeds, otherwise the result
+    * of the parser `else` is returned.
+    */
+  final def ifThenElse[F[_], S, C, P, A, B](`if`: ParserT[F, S, C, P, A], `then`: => ParserT[F, S, C, P, B],
+                                            `else`: => ParserT[F, S, C, P, B])
+                                           (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, B] = {
+    (`if` >> `then`) <+> `else`
+  }
+
+  /**
+    * A parser which returns a tuple of results produced by parsers `p1` and `p2`.
+    */
+  final def andThen[F[_], S, C, P, A, B](p1: ParserT[F, S, C, P, A], p2: ParserT[F, S, C, P, B])
+                                        (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, (A,B)] = {
+    for {
+      a1 <- p1
+      a2 <- p2
+    } yield (a1, a2)
+  }
+
+  /**
+    * Returns the result produced by the parser `p1` if it succeeds, otherwise returns
+    * the result of the parser `p2` instead.
+    */
+  final def orElse[F[_], S, C, P, A, B >: A](p1: ParserT[F, S, C, P, A], p2: => ParserT[F, S, C, P, B])
+                                            (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, B] = {
+    p1.map(_.asInstanceOf[B]) <+> p2
+  }
+
   final def bindCons[F[_], S, C, P, A](p: ParserT[F, S, C, P, A],
                                        tail: => ParserT[F, S, C, P, List[A]])
                                       (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, List[A]] = {
