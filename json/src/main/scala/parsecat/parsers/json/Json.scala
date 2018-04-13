@@ -27,9 +27,8 @@ import parsecat.parsers._
 
 trait Json extends Numeric {
 
-  final def parseJson(json: String): Either[ParseError[TextPosition], JsValue] = {
+  final def parseJson(json: String): Either[ParseError[TextPosition], JsValue] =
     parseText(jsParser, json, "[JsonParser] ")
-  }
 
   lazy val jsParser: TextParser[JsValue] = jsValue
 
@@ -41,11 +40,9 @@ trait Json extends Numeric {
 
   lazy val jsDouble: TextParser[JsDouble] = double.map(JsDouble)
 
-  lazy val jsBoolean: TextParser[JsBoolean] = {
-    (string("true") <+> string("false")).map(b => JsBoolean(b.toBoolean))
-  }
-
   lazy val jsString: TextParser[JsString] = quotedString.map(JsString)
+
+  lazy val jsBoolean: TextParser[JsBoolean] = (string("true") <+> string("false")).map(b => JsBoolean(b.toBoolean))
 
   lazy val jsArray: TextParser[JsArray] = {
     for {
@@ -76,24 +73,15 @@ trait Json extends Numeric {
     } yield JsObject(fields.toMap)
   }
 
-  lazy val jsValue: TextParser[JsValue] = {
-    choice(toJsValue(jsString), toJsValue(jsNull), toJsValue(jsBoolean), toJsValue(jsInt),
-      toJsValue(jsLong), toJsValue(jsDouble), toJsValue(jsArray), toJsValue(jsObject))
-  }
+  lazy val jsValue: TextParser[JsValue] = choice(toJsValue(jsString), toJsValue(jsNull), toJsValue(jsBoolean),
+    toJsValue(jsInt), toJsValue(jsLong), toJsValue(jsDouble), toJsValue(jsArray), toJsValue(jsObject))
 
-  private lazy val quotedString: TextParser[String] = {
-    stringify(between(char('"'), char('"'), many(noneOf(List('"')))))
-  }
+  private lazy val quotedString: TextParser[String] = stringify(between(char('"'), char('"'), many(noneOf(List('"')))))
 
-  private def toJsValue[A <: JsValue](p: TextParser[A]): TextParser[JsValue] = {
-    p.map(_.asInstanceOf[JsValue])
-  }
+  private def toJsValue[A <: JsValue](p: TextParser[A]): TextParser[JsValue] = p.map(_.asInstanceOf[JsValue])
 
-  private def emptyBlockOrValues[A, B](endsWith: TextParser[A], values: TextParser[List[B]]): TextParser[List[B]] = {
+  private def emptyBlockOrValues[A, B](endsWith: TextParser[A], values: TextParser[List[B]]): TextParser[List[B]] =
     testEmptyBlock(endsWith).map(_ => Nil.asInstanceOf[List[B]]) <+> values
-  }
 
-  private def testEmptyBlock[A](endsWith: TextParser[A]): TextParser[Unit] = {
-    test(delimiters >> endsWith).map(_ => ())
-  }
+  private def testEmptyBlock[A](endsWith: TextParser[A]): TextParser[Unit] = test(delimiters >> endsWith).map(_ => ())
 }
