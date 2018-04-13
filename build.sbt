@@ -41,7 +41,7 @@ val CommonSettings = Seq(
 
 val ParsecatSettings = CommonSettings ++ Seq(
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-core" % CatsVersion,
+    "org.typelevel" %% "cats-core" % CatsVersion
   )
 )
 
@@ -75,5 +75,5 @@ lazy val parsecatJson = (project in file("json"))
 lazy val parsecatTests = (project in file("tests"))
   .settings(moduleName := "parsecat-tests")
   .settings(ParsecatTestsSettings: _*)
-  .dependsOn(parsecatCore)
+  .dependsOn(parsecatCore, parsecatJson)
 

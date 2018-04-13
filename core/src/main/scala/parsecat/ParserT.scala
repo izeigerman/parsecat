@@ -171,7 +171,7 @@ private[parsecat] sealed trait ParserTAlternative[F[_], S, C, P]
 
   override def empty[A]: ParserT[F, S, C, P, A] = {
     ParserT((pos, _, _, info) => {
-      F0.pure(ParseError(pos, "empty", info).asLeft)
+      F0.pure(ParseError(pos, "", info).asLeft)
     })
   }
 
@@ -180,7 +180,7 @@ private[parsecat] sealed trait ParserTAlternative[F[_], S, C, P]
       F0.flatMap(x.runParserT(pos, input, context, info)) {
         case e1 @ Left(ParseError(newPos1, e1msg, _)) =>
           F0.map(y.runParserT(pos, input, context, info)) {
-            case r if e1msg == "empty" => r
+            case r if e1msg.isEmpty => r
             case e2 @ Left(ParseError(newPos2, _, _)) => if (P0.gteqv(newPos1, newPos2)) e1 else e2
             case o => o
           }

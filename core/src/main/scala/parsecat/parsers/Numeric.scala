@@ -26,19 +26,21 @@ import parsecat._
 
 trait Numeric extends Text {
 
-  lazy val double: TextParser[Double] = bigDecimalToNumeric(_ => true, _.doubleValue(), "double")
-  lazy val float: TextParser[Float] = bigDecimalToNumeric(_ => true, _.floatValue(), "float")
   lazy val long: TextParser[Long] = bigDecimalToNumeric(_.isValidLong, _.longValue(), "long")
   lazy val integer: TextParser[Int] = bigDecimalToNumeric(_.isValidInt, _.intValue(), "integer")
   lazy val short: TextParser[Short] = bigDecimalToNumeric(_.isValidShort, _.shortValue(), "short")
   lazy val byte: TextParser[Byte] = bigDecimalToNumeric(_.isValidByte, _.byteValue(), "byte")
+  lazy val double: TextParser[Double] =
+    bigDecimalToNumeric(_ => true, _.doubleValue(), "double") <+> infinityOrNaN(_.toDouble)
+  lazy val float: TextParser[Float] =
+    bigDecimalToNumeric(_ => true, _.floatValue(), "float") <+> infinityOrNaN(_.toFloat)
 
   lazy val bigInt: TextParser[BigInt] = {
     stringify(signedDigits).map(BigInt.apply)
   }
 
   lazy val bigDecimal: TextParser[BigDecimal] = {
-    stringify(signedDigitsWithCommaAndExponent) <+> string("Infinity") <+> string("NaN") map BigDecimal.apply
+    stringify(signedDigitsWithCommaAndExponent) map BigDecimal.apply
   }
 
   private lazy val digits: TextParser[List[Char]] = many1(digit)
@@ -56,6 +58,10 @@ trait Numeric extends Text {
       afterComma <- option(Nil, bindCons(char('.'), digits))
       exponent <- option(Nil, bindCons(oneOf(List('e', 'E')), digits))
     } yield ds ++ afterComma ++ exponent
+  }
+
+  private def infinityOrNaN[A](parse: String => A): TextParser[A] = {
+    string("Infinity") <+> string("NaN") map parse
   }
 
   private def bigDecimalToNumeric[A <: AnyVal](isValid: BigDecimal => Boolean,
