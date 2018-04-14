@@ -43,6 +43,16 @@ trait Combinators {
   }
 
   /**
+    * Applies parser `p` zero or more times until parser `end` succeeds. Returns the list of values
+    * produced by `p`.
+    */
+  final def manyTill[F[_], S, C, P, A, E](p: ParserT[F, S, C, P, A], end: ParserT[F, S, C, P, E])
+                                         (implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, List[A]] = {
+    lazy val nested: ParserT[F, S, C, P, List[A]] = end.map(_ => Nil.asInstanceOf[List[A]]) <+> bindCons(p, nested)
+    nested
+  }
+
+  /**
     * Applies the given parser zero or more times ignoring its result.
     */
   final def skipMany[F[_], S, C, P, A](p: ParserT[F, S, C, P, A])(implicit F: Monad[F], P0: Order[P], P1: Show[P]): ParserT[F, S, C, P, Unit] = {

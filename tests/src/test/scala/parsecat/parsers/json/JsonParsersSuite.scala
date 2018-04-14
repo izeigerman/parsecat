@@ -41,7 +41,9 @@ class JsonParsersSuite extends FunSuite with JsonParsers with Matchers {
         |    "field6": [
         |      { "field7": 1 }, { "field8": false }
         |    ]
-        |  }
+        |  },
+        |  "field9": [],
+        |  "field10": {}
         |}""".stripMargin
 
     val expected = JsObject(Map(
@@ -54,7 +56,9 @@ class JsonParsersSuite extends FunSuite with JsonParsers with Matchers {
           JsObject(Map("field7" -> JsInt(1))),
           JsObject(Map("field8" -> JsBoolean(false)))
         ))
-      ))
+      )),
+      "field9" -> JsArray(Nil),
+      "field10" -> JsObject(Map.empty)
     ))
 
     parseJson(jsonStr) shouldBe expected.asRight

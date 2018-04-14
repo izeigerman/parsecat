@@ -81,7 +81,5 @@ trait JsonParsers extends NumericParsers {
   private def toJsValue[A <: JsValue](p: TextParser[A]): TextParser[JsValue] = p.map(_.asInstanceOf[JsValue])
 
   private def emptyBlockOrValues[A, B](endsWith: TextParser[A], values: TextParser[List[B]]): TextParser[List[B]] =
-    testEmptyBlock(endsWith).map(_ => Nil.asInstanceOf[List[B]]) <+> values
-
-  private def testEmptyBlock[A](endsWith: TextParser[A]): TextParser[Unit] = test(delimiters >> endsWith).map(_ => ())
+    test(delimiters >> endsWith).map(_ => Nil.asInstanceOf[List[B]]) <+> values
 }
