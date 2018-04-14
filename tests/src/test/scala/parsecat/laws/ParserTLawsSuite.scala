@@ -26,7 +26,8 @@ import cats.laws.discipline._
 import cats.tests.CatsSuite
 import org.scalacheck.rng.Seed
 import org.scalacheck.{Arbitrary, Cogen, Gen}
-import parsecat.{parsers, _}
+import parsecat._
+import parsecat.parsers._
 import parsecat.parsers.text._
 import parsecat.parsers.TextPosition
 
@@ -38,7 +39,7 @@ class ParserTLawsSuite extends CatsSuite {
   implicit def eqForTextParser[A]: Eq[TextParser[A]] = {
     val stringsGen = Gen.alphaNumStr
     val strings = stringsGen.apply(Gen.Parameters.default, seed)
-    Eq.instance((x: parsers.text.TextParser[A], y: parsers.text.TextParser[A]) => {
+    Eq.instance((x: TextParser[A], y: TextParser[A]) => {
       strings.forall(s => {
         val pos = TextPosition(0, 1, 1)
         val xr = x.runParserT(pos, s, (), "")

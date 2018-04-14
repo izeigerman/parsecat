@@ -22,6 +22,8 @@
 package parsecat
 
 package object parsers {
-  object text extends Text
-  object numeric extends Numeric
+  type TextParser[A] = ParserT.Parser[String, Unit, TextPosition, A]
+
+  object text extends CharacterParsers
+  object numeric extends NumericParsers
 }

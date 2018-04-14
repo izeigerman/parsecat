@@ -28,7 +28,7 @@ import org.scalatest._
 import org.scalatest.prop.PropertyChecks
 import parsecat.ParseError
 
-class NumericSuite extends FunSuite with Numeric with PropertyChecks with Matchers {
+class NumericParsersSuite extends FunSuite with NumericParsers with PropertyChecks with Matchers {
 
   lazy val reallyBigInt = "31273812367126716238716387123"
 

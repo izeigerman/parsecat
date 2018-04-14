@@ -26,7 +26,7 @@ import org.scalatest.{FunSuite, Matchers}
 import parsecat.ParseError
 import parsecat.parsers.TextPosition
 
-class JsonSuite extends FunSuite with Json with Matchers {
+class JsonParsersSuite extends FunSuite with JsonParsers with Matchers {
 
   test("Json.jsParser.success") {
     val jsonStr =

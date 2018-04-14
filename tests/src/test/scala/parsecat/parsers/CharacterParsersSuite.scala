@@ -27,7 +27,7 @@ import org.scalacheck.Gen
 import org.scalatest.prop.PropertyChecks
 import parsecat.{ParseError, ParseOutput}
 
-class TextSuite extends FunSuite with Text with PropertyChecks with Matchers {
+class CharacterParsersSuite extends FunSuite with CharacterParsers with PropertyChecks with Matchers {
   test("Text.satisfy.success") {
     forAll(Gen.alphaLowerChar) { (c: Char) =>
       satisfy(_.isLetter).runParserT(TextPosition(0, 1, 1), c.toString, (), "") shouldBe

@@ -28,9 +28,7 @@ import parsecat._
 
 import scala.util.matching.Regex
 
-trait Text extends Combinator {
-  type TextParser[A] = ParserT.Parser[String, Unit, TextPosition, A]
-
+trait CharacterParsers extends Combinators {
   final def parseText[A](parser: TextParser[A], text: String, info: String): Either[ParseError[TextPosition], A] = {
     parser.parse(text, (), TextPosition(0, 1, 1), info)
   }
@@ -66,7 +64,7 @@ trait Text extends Combinator {
   final def regex(r: Regex): TextParser[String] = {
     ParserT[Id, String, Unit, TextPosition, String]((pos, input, context, info) => {
       if (input.size > pos.pos) {
-        val regexMatch = r.findPrefixOf(Text.ShiftedString(input, pos.pos))
+        val regexMatch = r.findPrefixOf(CharacterParsers.ShiftedString(input, pos.pos))
         regexMatch
           .map(out => ParseOutput(getNextPos(out, pos), input, context, out).asRight)
           .getOrElse(ParseError(pos, s"input doesn't match regex '$r'", info).asLeft)
@@ -206,7 +204,7 @@ trait Text extends Combinator {
   }
 }
 
-object Text {
+object CharacterParsers {
   private[parsecat] final case class ShiftedString(original: String, offset: Int) extends CharSequence {
 
     override def length(): Int = original.length - offset

@@ -25,7 +25,7 @@ import cats._
 import cats.implicits._
 import ParserT._
 
-trait Combinator {
+trait Combinators {
 
   /**
     * Applies the given parser zero or more times.
