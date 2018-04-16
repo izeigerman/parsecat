@@ -27,6 +27,7 @@ val DisciplineVersion = "0.8"
 val CommonSettings = Seq(
   organization := "com.github.izeigerman",
   scalaVersion := "2.12.2",
+  crossScalaVersions := Seq("2.11.11", "2.12.2"),
   version := "0.1.0-SNAPSHOT",
 
   scalacOptions ++= Seq(
@@ -39,24 +40,24 @@ val CommonSettings = Seq(
     "-Ypartial-unification")
 )
 
+val NoPublishSettings = CommonSettings ++ Seq(
+  publishArtifact := false,
+  publish := {}
+)
+
 val ParsecatSettings = CommonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-core" % CatsVersion
   )
 )
 
-val ParsecatTestsSettings = CommonSettings ++ Seq(
+val ParsecatTestsSettings = NoPublishSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-laws" % CatsVersion % "test->*",
     "org.typelevel" %% "cats-testkit" % CatsVersion % "test->*",
     "org.scalatest" %% "scalatest" % ScalaTestVersion % "test->*",
     "org.typelevel" %% "discipline" % DisciplineVersion % "test->*"
   )
-)
-
-val NoPublishSettings = CommonSettings ++ Seq(
-  publishArtifact := false,
-  publish := {}
 )
 
 lazy val parsecatRoot = (project in file("."))

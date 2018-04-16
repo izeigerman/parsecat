@@ -3,7 +3,7 @@ language: scala
 script:
   - sbt scalastyle test:scalastyle
 #  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && sbt coverageAggregate
-  - sbt clean test package
+  - sbt clean +test +package
 
 matrix:
   include:
