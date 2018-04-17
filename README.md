@@ -5,6 +5,12 @@
 **Parsecat** is a lightweight, pure-functional parser monad transformer and combinator library, which supports both applicative and monadic styles of parsing.
 
 ## Usage
+Supports Scala 2.11 and 2.12.
+```scala
+libraryDependencies += "com.github.izeigerman" %% "parsecat-core" % "0.1"
+// to include JSON parsers
+libraryDependencies += "com.github.izeigerman" %% "parsecat-json" % "0.1"
+```
 
 ### Text parser
 The text parser is just a type alias for a specialized `ParsetT`:
