@@ -30,6 +30,13 @@ val CommonSettings = Seq(
   crossScalaVersions := Seq("2.11.11", scalaVersion.value),
   version := "0.1.0-SNAPSHOT",
 
+  organizationHomepage := Some(url("https://github.com/izeigerman")),
+  developers := Developer("izeigerman", "Iaroslav Zeigerman", "", url("https://github.com/izeigerman")) :: Nil,
+  scmInfo := Some(ScmInfo(
+    browseUrl = url("https://github.com/izeigerman/parsecat.git"),
+    connection = "scm:git:git@github.com:izeigerman/parsecat.gi"
+  )),
+
   scalacOptions ++= Seq(
     "-unchecked",
     "-deprecation",
@@ -42,12 +49,24 @@ val CommonSettings = Seq(
 
 val NoPublishSettings = CommonSettings ++ Seq(
   publishArtifact := false,
+  skip in publish := true,
   publish := {}
 )
 
 val ParsecatSettings = CommonSettings ++ Seq(
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-core" % CatsVersion
+  ),
+
+  publishMavenStyle := true,
+  publishArtifact in Test := false,
+  pomIncludeRepository := (_ => false),
+  publishTo := Some(
+    if (version.value.trim.endsWith("SNAPSHOT")) {
+      "snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+    } else {
+      "releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+    }
   )
 )
 
