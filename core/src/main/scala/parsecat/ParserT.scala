@@ -81,8 +81,8 @@ object ParserT extends ParserTInstances {
     ParserT((_, _, _, _) => F.pure(o.asRight))
   }
 
-  def lift[F[_], S, C, P, A](p: F[Either[ParseError[P], ParseOutput[S, C, P, A]]]): ParserT[F, S, C, P, A] = {
-    ParserT((_, _, _, _) => p)
+  def lift[F[_], S, C, P, A](fa: F[A])(implicit F: Monad[F]): ParserT[F, S, C, P, A] = {
+    ParserT((pos, input, context, _) => F.map(fa)(a => ParseOutput(pos, input, context, a).asRight))
   }
 }
 
