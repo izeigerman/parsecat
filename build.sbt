@@ -31,6 +31,8 @@ val CommonSettings = Seq(
   version := "0.1.1-SNAPSHOT",
 
   organizationHomepage := Some(url("https://github.com/izeigerman")),
+  homepage := Some(url("https://github.com/izeigerman/parsecat")),
+  licenses in ThisBuild += ("MIT License", url("http://opensource.org/licenses/MIT")),
   developers := Developer("izeigerman", "Iaroslav Zeigerman", "", url("https://github.com/izeigerman")) :: Nil,
   scmInfo := Some(ScmInfo(
     browseUrl = url("https://github.com/izeigerman/parsecat.git"),
