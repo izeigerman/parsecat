@@ -33,7 +33,6 @@ class RegexParsersSuite extends FunSuite with PropertyChecks with Matchers {
     val result = parsecat.parsers.regex.regex("t.{2}t".r).runParserT(TextPosition(0, 1, 1), "test123", (), "")
     result.right.get.pos shouldBe TextPosition(4, 1, 5)
     result.right.get.output shouldBe "test"
-    result.right.get.input.pageRemainder.toString shouldBe "123"
   }
 
   test("Text.regex.failure") {

@@ -28,46 +28,48 @@ import cats.implicits._
 import PagedStringStream._
 
 private[parsecat] final class PagedStringStream(stream: Eval[Stream[Array[Char]]],
-                                                localOffset: Int,
+                                                pageOffset: Long,
                                                 val isSinglePage: Boolean) {
 
-  def char(): Either[String, (Char, PagedStringStream)] = {
-    getSlice(1).map { case (s, p) => (s(0), p) }
+  def char(offset: Long): Either[String, (Char, PagedStringStream)] = {
+    getSlice(1, offset).map { case (s, p) => (s.charAt(0), p) }
   }
 
-  def stringOfLength(length: Int): Either[String, (String, PagedStringStream)] = {
-    getSlice(length).map { case (s, p) => (s.mkString, p) }
+  def stringOfLength(length: Int, offset: Long): Either[String, (CharSequence, PagedStringStream)] = {
+    getSlice(length, offset)
   }
 
-  def pageRemainder: SlicedCharSequence = {
-    SlicedCharSequence(stream.value.head, localOffset)
-  }
-
-  def skip(length: Int): PagedStringStream = {
-    PagedStringStream(stream, localOffset + length, isSinglePage)
+  def pageRemainder(offset: Long): SlicedCharSequence = {
+    val page = stream.value.head
+    SlicedCharSequence(page, (offset - pageOffset).toInt, page.length)
   }
 
   def isEmpty: Boolean = stream.value.isEmpty
 
-  private def getSlice(length: Int): Either[String, (Array[Char], PagedStringStream)] = {
-    if (!isEmpty) {
+  private def getSlice(length: Int, offset: Long): Either[String, (CharSequence, PagedStringStream)] = {
+    if (offset < pageOffset) {
+      "offset can't be smaller than the current stream position".asLeft
+    } else if (isEmpty) {
+      "unexpected end of input".asLeft
+    } else {
       val current = stream.value.head
+      val nextPageOffset = pageOffset + current.length
+      val localOffset = (offset - pageOffset).toInt
       if (localOffset >= current.length) {
-        PagedStringStream(stream.map(_.tail), localOffset - current.length, isSinglePage).getSlice(length)
+        PagedStringStream(stream.map(_.tail), nextPageOffset, isSinglePage).getSlice(length, offset)
       } else {
-        val currentSlice = current.slice(localOffset, localOffset + length)
+        val currentSlice = SlicedCharSequence(current, localOffset, localOffset + length)
         if (currentSlice.length < length) {
-          val nextResult = PagedStringStream(stream.map(_.tail), 0, isSinglePage).getSlice(length - currentSlice.length)
+          val nextResult = PagedStringStream(stream.map(_.tail), nextPageOffset, isSinglePage)
+            .getSlice(length - currentSlice.length, nextPageOffset)
           nextResult match {
-            case Right((nextSlice, nextPage)) => (currentSlice ++ nextSlice, nextPage).asRight
+            case Right((nextSlice, nextPage)) => (CompositeCharSequence(currentSlice, nextSlice), nextPage).asRight
             case e @ Left(_) => e
           }
         } else {
-          (currentSlice, PagedStringStream(stream, localOffset + currentSlice.length, isSinglePage)).asRight
+          (currentSlice, this).asRight
         }
       }
-    } else {
-      "unexpected end of input".asLeft
     }
   }
 }
@@ -75,7 +77,7 @@ private[parsecat] final class PagedStringStream(stream: Eval[Stream[Array[Char]]
 object PagedStringStream {
   val PageSize = 4096
 
-  def apply(stream: Eval[Stream[Array[Char]]], localOffset: Int, isSinglePage: Boolean): PagedStringStream = {
+  def apply(stream: Eval[Stream[Array[Char]]], localOffset: Long, isSinglePage: Boolean): PagedStringStream = {
     new PagedStringStream(stream, localOffset, isSinglePage)
   }
 
@@ -105,15 +107,42 @@ object PagedStringStream {
     fromReader(new InputStreamReader(s))
   }
 
-  final case class SlicedCharSequence(original: Array[Char], offset: Int) extends CharSequence {
+  final case class SlicedCharSequence(original: Array[Char], startIdx: Int, endIdx: Int) extends CharSequence {
 
-    override def length(): Int = original.length - offset
+    override def length(): Int = Math.min(endIdx, original.length) - startIdx
 
     override def subSequence(start: Int, end: Int): CharSequence =
-      original.subSequence(start + offset, end + offset)
+      SlicedCharSequence(original, start + startIdx, end + startIdx)
 
-    override def charAt(index: Int): Char = original(offset + index)
+    override def charAt(index: Int): Char = original(startIdx + index)
 
-    override def toString: String = original.slice(offset, original.length).mkString
+    override def toString: String = original.slice(startIdx, endIdx).mkString
+  }
+
+  final case class CompositeCharSequence(first: CharSequence, second: CharSequence) extends CharSequence {
+
+    override def length(): Int = first.length() + second.length()
+
+    override def subSequence(start: Int, end: Int): CharSequence = {
+      if (start >= first.length()) {
+        second.subSequence(start - first.length(), end - first.length())
+      } else {
+        if (end >= first.length()) {
+          first.subSequence(start, first.length()).toString + second.subSequence(0, end - first.length()).toString
+        } else {
+          first.subSequence(start, end)
+        }
+      }
+    }
+
+    override def charAt(index: Int): Char = {
+      if (index >= first.length()) {
+        second.charAt(index - first.length())
+      } else {
+        first.charAt(index)
+      }
+    }
+
+    override def toString: String = first.toString + second.toString
   }
 }

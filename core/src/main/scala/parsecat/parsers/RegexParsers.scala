@@ -36,10 +36,10 @@ trait RegexParsers extends CharacterParsers {
   final def regex(r: Regex): TextParser[String] = {
     ParserT[Id, PagedStringStream, Unit, TextPosition, String]((pos, input, context, info) => {
       if (input.isSinglePage) {
-        val remainder = input.pageRemainder
+        val remainder = input.pageRemainder(pos.pos)
         val regexMatch = r.findPrefixOf(remainder)
         regexMatch
-          .map(out => ParseOutput(TextPosition.getNextPos(out, pos), input.skip(out.size), context, out).asRight)
+          .map(out => ParseOutput(TextPosition.getNextPos(out, pos), input, context, out).asRight)
           .getOrElse(ParseError(pos, s"input doesn't match regex '$r'", info).asLeft)
       } else {
         ParseError(pos, "can't apply regex on a multi-page stream", info).asLeft

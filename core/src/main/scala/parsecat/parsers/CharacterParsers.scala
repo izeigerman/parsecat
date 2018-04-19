@@ -42,7 +42,7 @@ trait CharacterParsers extends Combinators {
     */
   final def satisfy(p: Char => Boolean): TextParser[Char] = {
     ParserT[Id, PagedStringStream, Unit, TextPosition, Char]((pos, input, context, info) => {
-      input.char() match {
+      input.char(pos.pos) match {
         case Right((ch, nextInput)) =>
           if (p(ch)) {
             val newPos = TextPosition.getNextPos(ch, pos)
@@ -62,9 +62,9 @@ trait CharacterParsers extends Combinators {
     */
   final def string(s: String): TextParser[String] = {
     ParserT[Id, PagedStringStream, Unit, TextPosition, String]((pos, input, context, info) => {
-      input.stringOfLength(s.length) match {
+      input.stringOfLength(s.length, pos.pos) match {
         case Right((actual, nextInput)) =>
-          if (actual == s) {
+          if (s.contentEquals(actual)) {
             ParseOutput(TextPosition.getNextPos(s, pos), nextInput, context, s).asRight
           } else {
             ParseError(pos, s"input doesn't match value '$s'", info).asLeft
