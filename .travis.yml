@@ -2,13 +2,14 @@ language: scala
 
 script:
   - sbt scalastyle test:scalastyle
-#  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && sbt coverageAggregate
-  - sbt clean +test +package
+  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport && sbt coverageAggregate
 
 matrix:
   include:
     - jdk: oraclejdk8
       scala: 2.12.2
+    - jdk: oraclejdk7
+      scala: 2.11.11
 
 before_cache:
   - find "$HOME/.sbt/" -name '*.lock' -print0 | xargs -0 rm
@@ -19,6 +20,6 @@ cache:
     - $HOME/.ivy2/cache
     - $HOME/.sbt
 
-#after_success:
-#  - sbt coveralls
+after_success:
+  - sbt coveralls
 
