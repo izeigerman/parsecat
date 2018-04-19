@@ -24,10 +24,11 @@ package parsecat.parsers.json
 import cats.implicits._
 import parsecat.ParseError
 import parsecat.parsers._
+import parsecat.stream.PagedStringStream
 
 trait JsonParsers extends NumericParsers {
 
-  final def parseJson(json: String): Either[ParseError[TextPosition], JsValue] =
+  final def parseJson(json: PagedStringStream): Either[ParseError[TextPosition], JsValue] =
     parseText(jsParser, json, "[JsonParser] ")
 
   lazy val jsParser: TextParser[JsValue] = jsValue

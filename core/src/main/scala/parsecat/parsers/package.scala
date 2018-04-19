@@ -21,9 +21,12 @@
  */
 package parsecat
 
-package object parsers {
-  type TextParser[A] = ParserT.Parser[String, Unit, TextPosition, A]
+import parsecat.stream.PagedStringStream
 
-  object text extends CharacterParsers
+package object parsers {
+  type TextParser[A] = ParserT.Parser[PagedStringStream, Unit, TextPosition, A]
+
+  object character extends CharacterParsers
+  object regex extends RegexParsers
   object numeric extends NumericParsers
 }

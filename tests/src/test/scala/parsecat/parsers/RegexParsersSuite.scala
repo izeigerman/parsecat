@@ -21,38 +21,27 @@
  */
 package parsecat.parsers
 
-import org.scalatest.{FunSuite, Matchers}
+import java.io.StringReader
+
 import cats.implicits._
-import org.scalacheck.Gen
-import org.scalatest.prop.PropertyChecks
 import parsecat._
+import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.prop.PropertyChecks
 
-class CharacterParsersSuite extends FunSuite with CharacterParsers with PropertyChecks with Matchers {
-  test("Text.satisfy.success") {
-    forAll(Gen.alphaLowerChar) { (c: Char) =>
-      val result = satisfy(_.isLetter).runParserT(TextPosition(0, 1, 1), c.toString, (), "")
-      result.right.get.pos shouldBe TextPosition(1, 1, 2)
-      result.right.get.output shouldBe c
-    }
-  }
-
-  test("Text.satisfy.failure") {
-    forAll(Gen.numChar) { (c: Char) =>
-      parseText(satisfy(_.isLetter), c.toString) shouldBe
-        ParseError(TextPosition(0, 1, 1), s"unexpected character '$c'", "[Parsecat] ").asLeft
-    }
-  }
-
-  test("Text.string.success") {
-    val result = string("test").runParserT(TextPosition(0, 1, 1), "test123", (), "")
+class RegexParsersSuite extends FunSuite with PropertyChecks with Matchers {
+  test("Text.regex.success") {
+    val result = parsecat.parsers.regex.regex("t.{2}t".r).runParserT(TextPosition(0, 1, 1), "test123", (), "")
     result.right.get.pos shouldBe TextPosition(4, 1, 5)
     result.right.get.output shouldBe "test"
+    result.right.get.input.pageRemainder.toString shouldBe "123"
   }
 
-  test("Text.string.failure") {
-    parseText(string("test"), "123") shouldBe
-      ParseError(TextPosition(0, 1, 1), "unexpected end of input", "[Parsecat] ").asLeft
-    parseText(string("test"), "1234") shouldBe
-      ParseError(TextPosition(0, 1, 1), "input doesn't match value 'test'", "[Parsecat] ").asLeft
+  test("Text.regex.failure") {
+    parsecat.parsers.regex.parseText(parsecat.parsers.regex.regex("t.{2}t".r), "123") shouldBe
+      ParseError(TextPosition(0, 1, 1), "input doesn't match regex 't.{2}t'", "[Parsecat] ").asLeft
+    parsecat.parsers.regex.parseText(parsecat.parsers.regex.regex("t.{2}t".r), "1234") shouldBe
+      ParseError(TextPosition(0, 1, 1), "input doesn't match regex 't.{2}t'", "[Parsecat] ").asLeft
+    parsecat.parsers.regex.parseText(parsecat.parsers.regex.regex("t.{2}t".r), new StringReader("1234")) shouldBe
+      ParseError(TextPosition(0, 1, 1), "can't apply regex on a multi-page stream", "[Parsecat] ").asLeft
   }
 }

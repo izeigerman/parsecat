@@ -22,23 +22,28 @@
 package parsecat.parsers
 
 import cats._
-import cats.instances.int._
+import cats.implicits._
+import parsecat._
+import parsecat.stream.PagedStringStream
 
-final case class TextPosition(pos: Int, row: Int, col: Int)
+import scala.util.matching.Regex
 
-object TextPosition {
-  implicit val showForTextPosition: Show[TextPosition] = Show.show(p => s"row ${p.row}, column ${p.col}")
-  implicit val orderForTextPosition: Order[TextPosition] = Order.by(_.pos)
-
-  def getNextPos(str: String, pos: TextPosition): TextPosition = {
-    str.foldLeft(pos)((p, c) => getNextPos(c, p))
-  }
-
-  def getNextPos(char: Char, pos: TextPosition): TextPosition = {
-    if (char == '\n') {
-      TextPosition(pos.pos + 1, pos.row + 1, 1)
-    } else {
-      TextPosition(pos.pos + 1, pos.row, pos.col + 1)
-    }
+trait RegexParsers extends CharacterParsers {
+  /**
+    * The parser which succeeds for a string that matches the given regular expression.
+    * Returns a string that matched the regular expression. Supported only for single-page streams.
+    */
+  final def regex(r: Regex): TextParser[String] = {
+    ParserT[Id, PagedStringStream, Unit, TextPosition, String]((pos, input, context, info) => {
+      if (input.isSinglePage) {
+        val remainder = input.pageRemainder
+        val regexMatch = r.findPrefixOf(remainder)
+        regexMatch
+          .map(out => ParseOutput(TextPosition.getNextPos(out, pos), input.skip(out.size), context, out).asRight)
+          .getOrElse(ParseError(pos, s"input doesn't match regex '$r'", info).asLeft)
+      } else {
+        ParseError(pos, "can't apply regex on a multi-page stream", info).asLeft
+      }
+    })
   }
 }

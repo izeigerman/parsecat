@@ -16,7 +16,7 @@ libraryDependencies += "com.github.izeigerman" %% "parsecat-json" % "0.1"
 ### Text parser
 The text parser is just a type alias for a specialized `ParsetT`:
 ```scala
-type TextParser[A] = ParserT[Id, String, Unit, TextPosition, A]
+type TextParser[A] = ParserT[Id, PagedStringStream, Unit, TextPosition, A]
 ```
 It supports a 2-dimensional position tracking and has a variety of string and character implementations.
 
@@ -26,8 +26,8 @@ Before starting to use the parser the following imports are required:
 scala> import cats.implicits._
 import cats.implicits._
 
-scala> import parsecat.parsers.text._
-import parsecat.parsers.text._
+scala> import parsecat.parsers.character._
+import parsecat.parsers.character._
 ```
 Let's parse the following string:
 ```scala
@@ -111,7 +111,7 @@ res11: Either[parsecat.ParseError[parsecat.parsers.TextPosition],Double] = Right
 All common numeric types are supported: `byte`, `short`, `int`, `long`, `float`, `double`, `bigInt` and `bigDecimal`.
 
 #### JSON parser
-The JSON parser was added as a reference implementation and a good example of expressive power of parser combinators. The entire implementation is less than 60 LOC and could've been a part of this README, but instead you may find it here: [https://github.com/izeigerman/parsecat/blob/master/json/src/main/scala/parsecat/parsers/json/JsonParsers.scala](https://github.com/izeigerman/parsecat/blob/master/json/src/main/scala/parsecat/parsers/json/JsonParsers.scala).
+The JSON parser has been added as a reference implementation and a good example of expressive power of parser combinators. The entire implementation is less than 60 LOC and could've been a part of this README, but instead you may find it here: [https://github.com/izeigerman/parsecat/blob/master/json/src/main/scala/parsecat/parsers/json/JsonParsers.scala](https://github.com/izeigerman/parsecat/blob/master/json/src/main/scala/parsecat/parsers/json/JsonParsers.scala).
 ```scala
 scala> :paste
 // Entering paste mode (ctrl-D to finish)
