@@ -23,45 +23,44 @@ package parsecat.stream
 
 import java.io.{InputStream, InputStreamReader, Reader}
 
-import cats._
 import cats.implicits._
 import PagedStringStream._
 
-private[parsecat] final class PagedStringStream(stream: Eval[Stream[Array[Char]]],
+private[parsecat] final class PagedStringStream(stream: Stream[Array[Char]],
                                                 pageOffset: Long,
                                                 val isSinglePage: Boolean) {
 
   def char(offset: Long): Either[String, (Char, PagedStringStream)] = {
-    getSlice(1, offset).map { case (s, p) => (s.charAt(0), p) }
-  }
-
-  def stringOfLength(length: Int, offset: Long): Either[String, (CharSequence, PagedStringStream)] = {
-    getSlice(length, offset)
-  }
-
-  def pageRemainder(offset: Long): SlicedCharSequence = {
-    val page = stream.value.head
-    SlicedCharSequence(page, (offset - pageOffset).toInt, page.length)
-  }
-
-  def isEmpty: Boolean = stream.value.isEmpty
-
-  private def getSlice(length: Int, offset: Long): Either[String, (CharSequence, PagedStringStream)] = {
     if (offset < pageOffset) {
       "offset can't be smaller than the current stream position".asLeft
     } else if (isEmpty) {
       "unexpected end of input".asLeft
     } else {
-      val current = stream.value.head
-      val nextPageOffset = pageOffset + current.length
+      val current = stream.head
       val localOffset = (offset - pageOffset).toInt
       if (localOffset >= current.length) {
-        PagedStringStream(stream.map(_.tail), nextPageOffset, isSinglePage).getSlice(length, offset)
+        nextPage.char(offset)
+      } else {
+        (current(localOffset), this).asRight
+      }
+    }
+  }
+
+  def stringOfLength(length: Int, offset: Long): Either[String, (CharSequence, PagedStringStream)] = {
+    if (offset < pageOffset) {
+      "offset can't be smaller than the current stream position".asLeft
+    } else if (isEmpty) {
+      "unexpected end of input".asLeft
+    } else {
+      val current = stream.head
+      val localOffset = (offset - pageOffset).toInt
+      if (localOffset >= current.length) {
+        nextPage.stringOfLength(length, offset)
       } else {
         val currentSlice = SlicedCharSequence(current, localOffset, localOffset + length)
         if (currentSlice.length < length) {
-          val nextResult = PagedStringStream(stream.map(_.tail), nextPageOffset, isSinglePage)
-            .getSlice(length - currentSlice.length, nextPageOffset)
+          val nextPageOffset = pageOffset + current.length
+          val nextResult = nextPage.stringOfLength(length - currentSlice.length, nextPageOffset)
           nextResult match {
             case Right((nextSlice, nextPage)) => (CompositeCharSequence(currentSlice, nextSlice), nextPage).asRight
             case e @ Left(_) => e
@@ -72,21 +71,32 @@ private[parsecat] final class PagedStringStream(stream: Eval[Stream[Array[Char]]
       }
     }
   }
+
+  def pageRemainder(offset: Long): SlicedCharSequence = {
+    val page = stream.head
+    SlicedCharSequence(page, (offset - pageOffset).toInt, page.length)
+  }
+
+  def isEmpty: Boolean = stream.isEmpty
+
+  private def nextPage: PagedStringStream = {
+    PagedStringStream(stream.tail, pageOffset + stream.head.length, isSinglePage)
+  }
 }
 
 object PagedStringStream {
   val PageSize = 4096
 
-  def apply(stream: Eval[Stream[Array[Char]]], localOffset: Long, isSinglePage: Boolean): PagedStringStream = {
+  def apply(stream: Stream[Array[Char]], localOffset: Long, isSinglePage: Boolean): PagedStringStream = {
     new PagedStringStream(stream, localOffset, isSinglePage)
   }
 
   implicit def fromString(str: String): PagedStringStream = {
-    PagedStringStream(Eval.later(Stream(str.toCharArray)), 0, true)
+    PagedStringStream(str.toCharArray #:: Stream.empty[Array[Char]], 0, true)
   }
 
   implicit def fromCharArray(a: Array[Char]): PagedStringStream = {
-    PagedStringStream(Eval.later(Stream(a)), 0, true)
+    PagedStringStream(a #:: Stream.empty[Array[Char]], 0, true)
   }
 
   implicit def fromReader(r: Reader): PagedStringStream = {
@@ -100,7 +110,7 @@ object PagedStringStream {
         }
       head.map(h => h #:: toStream(r)).getOrElse(Stream.empty)
     }
-    PagedStringStream(Eval.later(toStream(r)), 0, false)
+    PagedStringStream(toStream(r), 0, false)
   }
 
   implicit def fromInputStream(s: InputStream): PagedStringStream = {
