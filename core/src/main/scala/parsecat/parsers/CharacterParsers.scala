@@ -45,7 +45,7 @@ trait CharacterParsers extends Combinators {
       input.char(pos.pos) match {
         case Right((ch, nextInput)) =>
           if (p(ch)) {
-            val newPos = TextPosition.getNextPos(ch, pos)
+            val newPos = pos.getNextPosition(ch)
             ParseOutput(newPos, nextInput, context, ch).asRight
           } else {
             ParseError(pos, s"unexpected character '$ch'", info).asLeft
@@ -65,7 +65,7 @@ trait CharacterParsers extends Combinators {
       input.stringOfLength(s.length, pos.pos) match {
         case Right((actual, nextInput)) =>
           if (s.contentEquals(actual)) {
-            ParseOutput(TextPosition.getNextPos(s, pos), nextInput, context, s).asRight
+            ParseOutput(pos.getNextPosition(s), nextInput, context, s).asRight
           } else {
             ParseError(pos, s"input doesn't match value '$s'", info).asLeft
           }

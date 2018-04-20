@@ -22,23 +22,23 @@
 package parsecat.parsers
 
 import cats._
-import cats.instances.int._
+import cats.instances.long._
 
-final case class TextPosition(pos: Int, row: Int, col: Int)
+final case class TextPosition(pos: Long, row: Int, col: Int) {
+  def getNextPosition(str: String): TextPosition = {
+    str.foldLeft(this)((p, c) => p.getNextPosition(c))
+  }
+
+  def getNextPosition(char: Char): TextPosition = {
+    if (char == '\n') {
+      TextPosition(pos + 1, row + 1, 1)
+    } else {
+      TextPosition(pos + 1, row, col + 1)
+    }
+  }
+}
 
 object TextPosition {
   implicit val showForTextPosition: Show[TextPosition] = Show.show(p => s"row ${p.row}, column ${p.col}")
   implicit val orderForTextPosition: Order[TextPosition] = Order.by(_.pos)
-
-  def getNextPos(str: String, pos: TextPosition): TextPosition = {
-    str.foldLeft(pos)((p, c) => getNextPos(c, p))
-  }
-
-  def getNextPos(char: Char, pos: TextPosition): TextPosition = {
-    if (char == '\n') {
-      TextPosition(pos.pos + 1, pos.row + 1, 1)
-    } else {
-      TextPosition(pos.pos + 1, pos.row, pos.col + 1)
-    }
-  }
 }

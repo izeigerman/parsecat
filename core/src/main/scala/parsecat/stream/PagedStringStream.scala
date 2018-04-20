@@ -26,9 +26,9 @@ import java.io.{InputStream, InputStreamReader, Reader}
 import cats.implicits._
 import PagedStringStream._
 
-private[parsecat] final class PagedStringStream(stream: Stream[Array[Char]],
-                                                pageOffset: Long,
-                                                val isSinglePage: Boolean) {
+private[parsecat] final case class PagedStringStream(stream: Stream[Array[Char]],
+                                                     pageOffset: Long,
+                                                     isSinglePage: Boolean) {
 
   def char(offset: Long): Either[String, (Char, PagedStringStream)] = {
     if (offset < pageOffset) {
@@ -79,7 +79,7 @@ private[parsecat] final class PagedStringStream(stream: Stream[Array[Char]],
 
   def isEmpty: Boolean = stream.isEmpty
 
-  private def nextPage: PagedStringStream = {
+  def nextPage: PagedStringStream = {
     PagedStringStream(stream.tail, pageOffset + stream.head.length, isSinglePage)
   }
 }
@@ -138,7 +138,6 @@ object PagedStringStream {
   implicit def fromCharArrayIterable(i: Iterable[Array[Char]]): PagedStringStream = fromCharArrayIterator(i.iterator)
 
   final case class SlicedCharSequence(original: Array[Char], startIdx: Int, endIdx: Int) extends CharSequence {
-
     override def length(): Int = Math.min(endIdx, original.length) - startIdx
 
     override def subSequence(start: Int, end: Int): CharSequence =
@@ -150,7 +149,6 @@ object PagedStringStream {
   }
 
   final case class CompositeCharSequence(first: CharSequence, second: CharSequence) extends CharSequence {
-
     override def length(): Int = first.length() + second.length()
 
     override def subSequence(start: Int, end: Int): CharSequence = {

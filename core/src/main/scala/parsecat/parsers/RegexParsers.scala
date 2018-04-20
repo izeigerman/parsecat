@@ -39,7 +39,7 @@ trait RegexParsers extends CharacterParsers {
         val remainder = input.pageRemainder(pos.pos)
         val regexMatch = r.findPrefixOf(remainder)
         regexMatch
-          .map(out => ParseOutput(TextPosition.getNextPos(out, pos), input, context, out).asRight)
+          .map(out => ParseOutput(pos.getNextPosition(out), input, context, out).asRight)
           .getOrElse(ParseError(pos, s"input doesn't match regex '$r'", info).asLeft)
       } else {
         ParseError(pos, "can't apply regex on a multi-page stream", info).asLeft
