@@ -62,7 +62,7 @@ private[parsecat] final class PagedStringStream(stream: Stream[Array[Char]],
           val nextPageOffset = pageOffset + current.length
           val nextResult = nextPage.stringOfLength(length - currentSlice.length, nextPageOffset)
           nextResult match {
-            case Right((nextSlice, nextPage)) => (CompositeCharSequence(currentSlice, nextSlice), nextPage).asRight
+            case Right((slice, page)) => (CompositeCharSequence(currentSlice, slice), page).asRight
             case e @ Left(_) => e
           }
         } else {
@@ -117,6 +117,26 @@ object PagedStringStream {
     fromReader(new InputStreamReader(s))
   }
 
+  implicit def fromStringIterator(i: Iterator[String]): PagedStringStream = {
+    def toStream(i: Iterator[String]): Stream[Array[Char]] = {
+      val head = if (i.hasNext) Some(i.next().toCharArray) else None
+      head.map(h => h #:: toStream(i)).getOrElse(Stream.empty)
+    }
+    PagedStringStream(toStream(i), 0, false)
+  }
+
+  implicit def fromCharArrayIterator(i: Iterator[Array[Char]]): PagedStringStream = {
+    def toStream(i: Iterator[Array[Char]]): Stream[Array[Char]] = {
+      val head = if (i.hasNext) Some(i.next()) else None
+      head.map(h => h #:: toStream(i)).getOrElse(Stream.empty)
+    }
+    PagedStringStream(toStream(i), 0, false)
+  }
+
+  implicit def fromStringIterable(i: Iterable[String]): PagedStringStream = fromStringIterator(i.iterator)
+
+  implicit def fromCharArrayIterable(i: Iterable[Array[Char]]): PagedStringStream = fromCharArrayIterator(i.iterator)
+
   final case class SlicedCharSequence(original: Array[Char], startIdx: Int, endIdx: Int) extends CharSequence {
 
     override def length(): Int = Math.min(endIdx, original.length) - startIdx
@@ -137,7 +157,7 @@ object PagedStringStream {
       if (start >= first.length()) {
         second.subSequence(start - first.length(), end - first.length())
       } else {
-        if (end >= first.length()) {
+        if (end > first.length()) {
           first.subSequence(start, first.length()).toString + second.subSequence(0, end - first.length()).toString
         } else {
           first.subSequence(start, end)
