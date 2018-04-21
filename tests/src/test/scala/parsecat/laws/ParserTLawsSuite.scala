@@ -30,7 +30,7 @@ import parsecat._
 import parsecat.parsers._
 import parsecat.parsers.character._
 import parsecat.parsers.TextPosition
-import parsecat.stream.PagedStringStream
+import parsecat.stream.PagedStream
 
 class ParserTLawsSuite extends CatsSuite {
 
@@ -67,7 +67,7 @@ class ParserTLawsSuite extends CatsSuite {
   implicit val cogenForParseError: Cogen[ParseError[TextPosition]] = Cogen(_ => 0L)
 
   implicit val arbitraryForTextParserCharToChar: Arbitrary[TextParser[Char => Char]] = {
-    val ff = ParserT[Id, PagedStringStream, Unit, TextPosition, Char => Char]((pos, input, context, _) => {
+    val ff = ParserT[Id, PagedStream[Char], Unit, TextPosition, Char => Char]((pos, input, context, _) => {
       ParseOutput(pos, input, context, (_: Char) => ' ').asRight
     })
 //    val failure = ParserT.parserTError[Id, String, Unit, TextPosition, Char => Char](ParseError(TextPosition(0, 1, 1), "", ""))

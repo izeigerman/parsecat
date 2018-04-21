@@ -24,7 +24,7 @@ package parsecat.parsers
 import cats._
 import cats.implicits._
 import parsecat._
-import parsecat.stream.PagedStringStream
+import parsecat.stream.PagedStream
 
 import scala.util.matching.Regex
 
@@ -34,7 +34,7 @@ trait RegexParsers extends CharacterParsers {
     * Returns a string that matched the regular expression. Supported only for single-page streams.
     */
   final def regex(r: Regex): TextParser[String] = {
-    ParserT[Id, PagedStringStream, Unit, TextPosition, String]((pos, input, context, info) => {
+    ParserT[Id, PagedStream[Char], Unit, TextPosition, String]((pos, input, context, info) => {
       if (input.isSinglePage) {
         val remainder = input.pageRemainder(pos.pos)
         val regexMatch = r.findPrefixOf(remainder)

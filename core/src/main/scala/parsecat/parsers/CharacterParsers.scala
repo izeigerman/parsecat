@@ -25,14 +25,14 @@ import cats._
 import cats.implicits._
 import parsecat.ParserT.alternativeForParserT
 import parsecat._
-import parsecat.stream.PagedStringStream
+import parsecat.stream.PagedStream
 
 trait CharacterParsers extends Combinators {
-  final def parseText[A](parser: TextParser[A], text: PagedStringStream, info: String): Either[ParseError[TextPosition], A] = {
+  final def parseText[A](parser: TextParser[A], text: PagedStream[Char], info: String): Either[ParseError[TextPosition], A] = {
     parser.parse(text, (), TextPosition(0, 1, 1), info)
   }
 
-  final def parseText[A](parser: TextParser[A], text: PagedStringStream): Either[ParseError[TextPosition], A] = {
+  final def parseText[A](parser: TextParser[A], text: PagedStream[Char]): Either[ParseError[TextPosition], A] = {
     parser.parse(text, (), TextPosition(0, 1, 1))
   }
 
@@ -41,8 +41,8 @@ trait CharacterParsers extends Combinators {
     * Returns the parsed character.
     */
   final def satisfy(p: Char => Boolean): TextParser[Char] = {
-    ParserT[Id, PagedStringStream, Unit, TextPosition, Char]((pos, input, context, info) => {
-      input.char(pos.pos) match {
+    ParserT[Id, PagedStream[Char], Unit, TextPosition, Char]((pos, input, context, info) => {
+      input.apply(pos.pos) match {
         case Right((ch, nextInput)) =>
           if (p(ch)) {
             val newPos = pos.getNextPosition(ch)
@@ -61,8 +61,8 @@ trait CharacterParsers extends Combinators {
     * Returns the parsed string.
     */
   final def string(s: String): TextParser[String] = {
-    ParserT[Id, PagedStringStream, Unit, TextPosition, String]((pos, input, context, info) => {
-      input.stringOfLength(s.length, pos.pos) match {
+    ParserT[Id, PagedStream[Char], Unit, TextPosition, String]((pos, input, context, info) => {
+      input.slice(s.length, pos.pos) match {
         case Right((actual, nextInput)) =>
           if (s.contentEquals(actual)) {
             ParseOutput(pos.getNextPosition(s), nextInput, context, s).asRight
