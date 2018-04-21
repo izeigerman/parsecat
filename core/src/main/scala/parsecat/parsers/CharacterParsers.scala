@@ -25,15 +25,14 @@ import cats._
 import cats.implicits._
 import parsecat.ParserT.alternativeForParserT
 import parsecat._
-
-import scala.util.matching.Regex
+import parsecat.stream.PagedStream
 
 trait CharacterParsers extends Combinators {
-  final def parseText[A](parser: TextParser[A], text: String, info: String): Either[ParseError[TextPosition], A] = {
+  final def parseText[A](parser: TextParser[A], text: PagedStream[Char], info: String): Either[ParseError[TextPosition], A] = {
     parser.parse(text, (), TextPosition(0, 1, 1), info)
   }
 
-  final def parseText[A](parser: TextParser[A], text: String): Either[ParseError[TextPosition], A] = {
+  final def parseText[A](parser: TextParser[A], text: PagedStream[Char]): Either[ParseError[TextPosition], A] = {
     parser.parse(text, (), TextPosition(0, 1, 1))
   }
 
@@ -42,34 +41,17 @@ trait CharacterParsers extends Combinators {
     * Returns the parsed character.
     */
   final def satisfy(p: Char => Boolean): TextParser[Char] = {
-    ParserT[Id, String, Unit, TextPosition, Char]((pos, input, context, info) => {
-      if (input.size > pos.pos) {
-        val ch = input.charAt(pos.pos)
-        val newPos = getNextPos(ch, pos)
-        if (p(ch)) {
-          ParseOutput(newPos, input, context, ch).asRight
-        } else {
-          ParseError(pos, s"unexpected character '$ch'", info).asLeft
-        }
-      } else {
-        ParseError(pos, "unexpected end of input", info).asLeft
-      }
-    })
-  }
-
-  /**
-    * The parser which succeeds for a string that matches the given regular expression.
-    * Returns a string that matched the regular expression.
-    */
-  final def regex(r: Regex): TextParser[String] = {
-    ParserT[Id, String, Unit, TextPosition, String]((pos, input, context, info) => {
-      if (input.size > pos.pos) {
-        val regexMatch = r.findPrefixOf(CharacterParsers.ShiftedString(input, pos.pos))
-        regexMatch
-          .map(out => ParseOutput(getNextPos(out, pos), input, context, out).asRight)
-          .getOrElse(ParseError(pos, s"input doesn't match regex '$r'", info).asLeft)
-      } else {
-        ParseError(pos, "unexpected end of input", info).asLeft
+    ParserT[Id, PagedStream[Char], Unit, TextPosition, Char]((pos, input, context, info) => {
+      input.apply(pos.pos) match {
+        case Right((ch, nextInput)) =>
+          if (p(ch)) {
+            val newPos = pos.getNextPosition(ch)
+            ParseOutput(newPos, nextInput, context, ch).asRight
+          } else {
+            ParseError(pos, s"unexpected character '$ch'", info).asLeft
+          }
+        case Left(e) =>
+          ParseError(pos, e, info).asLeft
       }
     })
   }
@@ -79,15 +61,16 @@ trait CharacterParsers extends Combinators {
     * Returns the parsed string.
     */
   final def string(s: String): TextParser[String] = {
-    ParserT[Id, String, Unit, TextPosition, String]((pos, input, context, info) => {
-      if (input.size >= (pos.pos + s.length)) {
-        if (input.startsWith(s, pos.pos)) {
-          ParseOutput(getNextPos(s, pos), input, context, s).asRight
-        } else {
-          ParseError(pos, s"input doesn't match value '$s'", info).asLeft
-        }
-      } else {
-        ParseError(pos, "unexpected end of input", info).asLeft
+    ParserT[Id, PagedStream[Char], Unit, TextPosition, String]((pos, input, context, info) => {
+      input.slice(s.length, pos.pos) match {
+        case Right((actual, nextInput)) =>
+          if (s.contentEquals(actual)) {
+            ParseOutput(pos.getNextPosition(s), nextInput, context, s).asRight
+          } else {
+            ParseError(pos, s"input doesn't match value '$s'", info).asLeft
+          }
+        case Left(e) =>
+          ParseError(pos, e, info).asLeft
       }
     })
 //    stringify(s.map(char(_)).foldRight(parserTPure[Id, String, Unit, List[Char]](Nil))((x, xs) => bindCons(x, xs)))
@@ -189,29 +172,5 @@ trait CharacterParsers extends Combinators {
     */
   final def stringify(p: TextParser[List[Char]]): TextParser[String] = {
     p.map(_.mkString(""))
-  }
-
-  protected final def getNextPos(str: String, pos: TextPosition): TextPosition = {
-    str.foldLeft(pos)((p, c) => getNextPos(c, p))
-  }
-
-  protected final def getNextPos(char: Char, pos: TextPosition): TextPosition = {
-    if (char == '\n') {
-      TextPosition(pos.pos + 1, pos.row + 1, 1)
-    } else {
-      TextPosition(pos.pos + 1, pos.row, pos.col + 1)
-    }
-  }
-}
-
-object CharacterParsers {
-  private[parsecat] final case class ShiftedString(original: String, offset: Int) extends CharSequence {
-
-    override def length(): Int = original.length - offset
-
-    override def subSequence(start: Int, end: Int): CharSequence =
-      original.subSequence(start + offset, end + offset)
-
-    override def charAt(index: Int): Char = original.charAt(offset + index)
   }
 }

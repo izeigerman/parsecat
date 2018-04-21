@@ -25,13 +25,14 @@ import org.scalatest.{FunSuite, Matchers}
 import cats.implicits._
 import org.scalacheck.Gen
 import org.scalatest.prop.PropertyChecks
-import parsecat.{ParseError, ParseOutput}
+import parsecat._
 
 class CharacterParsersSuite extends FunSuite with CharacterParsers with PropertyChecks with Matchers {
   test("Text.satisfy.success") {
     forAll(Gen.alphaLowerChar) { (c: Char) =>
-      satisfy(_.isLetter).runParserT(TextPosition(0, 1, 1), c.toString, (), "") shouldBe
-        ParseOutput(TextPosition(1, 1, 2), c.toString, (), c).asRight
+      val result = satisfy(_.isLetter).runParserT(TextPosition(0, 1, 1), c.toString, (), "")
+      result.right.get.pos shouldBe TextPosition(1, 1, 2)
+      result.right.get.output shouldBe c
     }
   }
 
@@ -43,8 +44,9 @@ class CharacterParsersSuite extends FunSuite with CharacterParsers with Property
   }
 
   test("Text.string.success") {
-    string("test").runParserT(TextPosition(0, 1, 1), "test123", (), "") shouldBe
-      ParseOutput(TextPosition(4, 1, 5), "test123", (), "test").asRight
+    val result = string("test").runParserT(TextPosition(0, 1, 1), "test123", (), "")
+    result.right.get.pos shouldBe TextPosition(4, 1, 5)
+    result.right.get.output shouldBe "test"
   }
 
   test("Text.string.failure") {
@@ -52,17 +54,5 @@ class CharacterParsersSuite extends FunSuite with CharacterParsers with Property
       ParseError(TextPosition(0, 1, 1), "unexpected end of input", "[Parsecat] ").asLeft
     parseText(string("test"), "1234") shouldBe
       ParseError(TextPosition(0, 1, 1), "input doesn't match value 'test'", "[Parsecat] ").asLeft
-  }
-
-  test("Text.regex.success") {
-    parsecat.parsers.text.regex("t.{2}t".r).runParserT(TextPosition(0, 1, 1), "test123", (), "") shouldBe
-      ParseOutput(TextPosition(4, 1, 5), "test123", (), "test").asRight
-  }
-
-  test("Text.regex.failure") {
-    parseText(parsecat.parsers.text.regex("t.{2}t".r), "123") shouldBe
-      ParseError(TextPosition(0, 1, 1), "input doesn't match regex 't.{2}t'", "[Parsecat] ").asLeft
-    parseText(parsecat.parsers.text.regex("t.{2}t".r), "1234") shouldBe
-      ParseError(TextPosition(0, 1, 1), "input doesn't match regex 't.{2}t'", "[Parsecat] ").asLeft
   }
 }

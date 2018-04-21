@@ -19,14 +19,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package parsecat
+package parsecat.parsers
 
+import cats._
+import cats.implicits._
+import parsecat._
 import parsecat.stream.PagedStream
 
-package object parsers {
-  type TextParser[A] = ParserT.Parser[PagedStream[Char], Unit, TextPosition, A]
+import scala.util.matching.Regex
 
-  object character extends CharacterParsers
-  object regex extends RegexParsers
-  object numeric extends NumericParsers
+trait RegexParsers extends CharacterParsers {
+  /**
+    * The parser which succeeds for a string that matches the given regular expression.
+    * Returns a string that matched the regular expression. Supported only for single-page streams.
+    */
+  final def regex(r: Regex): TextParser[String] = {
+    ParserT[Id, PagedStream[Char], Unit, TextPosition, String]((pos, input, context, info) => {
+      if (input.isSinglePage) {
+        val remainder = input.pageRemainder(pos.pos)
+        val regexMatch = r.findPrefixOf(remainder)
+        regexMatch
+          .map(out => ParseOutput(pos.getNextPosition(out), input, context, out).asRight)
+          .getOrElse(ParseError(pos, s"input doesn't match regex '$r'", info).asLeft)
+      } else {
+        ParseError(pos, "can't apply regex on a multi-page stream", info).asLeft
+      }
+    })
+  }
 }
