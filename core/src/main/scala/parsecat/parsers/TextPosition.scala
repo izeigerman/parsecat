@@ -25,8 +25,8 @@ import cats._
 import cats.instances.long._
 
 final case class TextPosition(pos: Long, row: Int, col: Int) {
-  def getNextPosition(str: String): TextPosition = {
-    str.foldLeft(this)((p, c) => p.getNextPosition(c))
+  def getNextPosition(str: CharSequence): TextPosition = {
+    (0 until str.length()).foldLeft(this)((p, i) => p.getNextPosition(str.charAt(i)))
   }
 
   def getNextPosition(char: Char): TextPosition = {

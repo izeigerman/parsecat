@@ -47,45 +47,45 @@ trait StringParsers extends CharacterParsers {
     // stringify(s.map(char(_)).foldRight(parserTPure[Id, String, Unit, List[Char]](Nil))((x, xs) => bindCons(x, xs)))
   }
 
-  def satisfyMany1(p: Char => Boolean): TextParser[String] = {
+  def satisfyMany1(p: Char => Boolean): TextParser[CharSequence] = {
     satisfyMany(p, false)
   }
 
-  def satisfyMany(p: Char => Boolean): TextParser[String] = {
+  def satisfyMany(p: Char => Boolean): TextParser[CharSequence] = {
     satisfyMany(p, true)
   }
 
-  final def anyCharTill(end: Char => Boolean): TextParser[String] = satisfyMany(ch => !end(ch))
+  final def anyCharTill(end: Char => Boolean): TextParser[CharSequence] = satisfyMany(ch => !end(ch))
 
-  final def oneOfMany(str: String): TextParser[String] = satisfyMany(c => str.contains(c))
+  final def oneOfMany(str: String): TextParser[CharSequence] = satisfyMany(c => str.contains(c))
 
-  final def oneOfMany(str: List[Char]): TextParser[String] = satisfyMany(c => str.contains(c))
+  final def oneOfMany(str: List[Char]): TextParser[CharSequence] = satisfyMany(c => str.contains(c))
 
-  final def oneOfMany1(str: String): TextParser[String] = satisfyMany1(c => str.contains(c))
+  final def oneOfMany1(str: String): TextParser[CharSequence] = satisfyMany1(c => str.contains(c))
 
-  final def oneOfMany1(str: List[Char]): TextParser[String] = satisfyMany1(c => str.contains(c))
+  final def oneOfMany1(str: List[Char]): TextParser[CharSequence] = satisfyMany1(c => str.contains(c))
 
-  final def noneOfMany(str: String): TextParser[String] = satisfyMany(c => !str.contains(c))
+  final def noneOfMany(str: String): TextParser[CharSequence] = satisfyMany(c => !str.contains(c))
 
-  final def noneOfMany(str: List[Char]): TextParser[String] = satisfyMany(c => !str.contains(c))
+  final def noneOfMany(str: List[Char]): TextParser[CharSequence] = satisfyMany(c => !str.contains(c))
 
-  final def noneOfMany1(str: String): TextParser[String] = satisfyMany1(c => !str.contains(c))
+  final def noneOfMany1(str: String): TextParser[CharSequence] = satisfyMany1(c => !str.contains(c))
 
-  final def noneOfMany1(str: List[Char]): TextParser[String] = satisfyMany1(c => !str.contains(c))
+  final def noneOfMany1(str: List[Char]): TextParser[CharSequence] = satisfyMany1(c => !str.contains(c))
 
   /**
     * Skip zero or more spaces, tabs and end of lines in any combination.
     */
   lazy val delimiters: TextParser[Unit] = oneOfMany(List('\r', '\t', '\n', ' ')).map(_ => ())
 
-  private def satisfyMany(p: Char => Boolean, canBeEmpty: Boolean): TextParser[String] = {
-    ParserT[Id, PagedStream[Char], TextParserContext, TextPosition, String]((pos, input, context, info) => {
+  private def satisfyMany(p: Char => Boolean, canBeEmpty: Boolean): TextParser[CharSequence] = {
+    ParserT[Id, PagedStream[Char], TextParserContext, TextPosition, CharSequence]((pos, input, context, info) => {
       input.takeWhile(pos.pos, p) match {
         case Right((sequence, nextInput)) =>
           if (sequence.length == 0 && !canBeEmpty) {
             context.error(pos, "no characters satisfied the condition", info).asLeft
           } else {
-            val str = PagedStream.toSlicableCharSequence(sequence).toString
+            val str = PagedStream.slicableToCharSequence(sequence)
             val newPos = pos.getNextPosition(str)
             ParseOutput(newPos, nextInput, context, str).asRight
           }

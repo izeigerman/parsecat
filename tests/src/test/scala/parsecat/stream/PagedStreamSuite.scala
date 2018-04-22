@@ -43,11 +43,11 @@ class PagedStreamSuite extends FunSuite with Matchers with PropertyChecks {
     page.isSinglePage shouldBe false
 
     val result1 = page.slice(1, offset)
-    toSlicableCharSequence(result1.right.get._1).toString shouldBe str.substring(offset, offset + 1)
+    slicableToCharSequence(result1.right.get._1).toString shouldBe str.substring(offset, offset + 1)
     result1.right.get._2 shouldBe page
 
     val result2 = page.slice(length, offset)
-    toSlicableCharSequence(result2.right.get._1).toString shouldBe str.substring(offset, offset + length)
+    slicableToCharSequence(result2.right.get._1).toString shouldBe str.substring(offset, offset + length)
 
     val nextPage = result2.right.get._2
     nextPage should not be page
@@ -80,7 +80,7 @@ class PagedStreamSuite extends FunSuite with Matchers with PropertyChecks {
     val length = 10
 
     val result1 = page.slice(length, offset)
-    toSlicableCharSequence(result1.right.get._1).toString shouldBe str.substring(offset, offset + length)
+    slicableToCharSequence(result1.right.get._1).toString shouldBe str.substring(offset, offset + length)
 
     val nextPage = result1.right.get._2
     nextPage should not be page
@@ -100,7 +100,7 @@ class PagedStreamSuite extends FunSuite with Matchers with PropertyChecks {
     compositeSequence.subSequence(2, 4).toString shouldBe "st"
     compositeSequence.charAt(3) shouldBe 't'
     compositeSequence.charAt(4) shouldBe '1'
-    toSlicableCharSequence(compositeSequence).toString shouldBe "test123"
+    slicableToCharSequence(compositeSequence).toString shouldBe "test123"
   }
 
   def stringGen(length: Int): Gen[String] = Gen.listOfN(length, Gen.alphaChar).map(_.mkString)

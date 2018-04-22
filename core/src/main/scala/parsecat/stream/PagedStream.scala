@@ -188,7 +188,7 @@ object PagedStream {
     override def toString: String = (0 until length).map(charAt).mkString
   }
 
-  implicit def toSlicableCharSequence(seq: SlicableSequence[Char]): SlicableCharSequence = {
+  implicit def slicableToCharSequence(seq: SlicableSequence[Char]): CharSequence = {
     SlicableCharSequence(seq)
   }
 }

@@ -140,12 +140,4 @@ trait CharacterParsers extends Combinators {
     * The parser which succeeds if the end of line occurs. Returns a newline character.
     */
   lazy val eol: TextParser[Char] = newline <+> crlf
-
-  /**
-    * Transforms the given parser which produces a list of characters into the parser
-    * which returns a string instance instead.
-    */
-  final def stringify(p: TextParser[List[Char]]): TextParser[String] = {
-    p.map(_.mkString(""))
-  }
 }
