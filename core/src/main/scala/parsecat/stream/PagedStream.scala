@@ -72,6 +72,38 @@ private[parsecat] final case class PagedStream[A](stream: Stream[Array[A]],
     }
   }
 
+  def takeWhile(offset: Long, p: A => Boolean): Either[String, (SlicableSequence[A], PagedStream[A])] = {
+    if (offset < pageOffset) {
+      "offset can't be smaller than the current stream position".asLeft
+    } else if (isEmpty) {
+      "unexpected end of input".asLeft
+    } else {
+      val current = stream.head
+      val localOffset = (offset - pageOffset).toInt
+      if (localOffset >= current.length) {
+        nextPage.takeWhile(offset, p)
+      } else {
+        var endIdx = localOffset
+        while (endIdx < current.length && p(current.apply(endIdx))) endIdx += 1
+        val currentSlice = SlicedSequence(current, localOffset, endIdx)
+        if (endIdx >= current.length) {
+          val nPage = nextPage
+          if (!nPage.isEmpty) {
+            val nextResult = nPage.takeWhile(pageOffset + current.length, p)
+            nextResult match {
+              case Right((slice, page)) => (CompositeSlicableSequence(currentSlice, slice), page).asRight
+              case e @ Left(_) => e
+            }
+          } else {
+            (currentSlice, this).asRight
+          }
+        } else {
+          (currentSlice, this).asRight
+        }
+      }
+    }
+  }
+
   def pageRemainder(offset: Long): SlicableSequence[A] = {
     val page = stream.head
     SlicedSequence(page, (offset - pageOffset).toInt, page.length)

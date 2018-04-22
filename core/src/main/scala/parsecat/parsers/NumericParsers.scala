@@ -24,7 +24,7 @@ package parsecat.parsers
 import cats.implicits._
 import parsecat._
 
-trait NumericParsers extends CharacterParsers {
+trait NumericParsers extends StringParsers {
 
   lazy val long: TextParser[Long] = bigDecimalToNumeric(_.isValidLong, _.longValue(), "long")
   lazy val integer: TextParser[Int] = bigDecimalToNumeric(_.isValidInt, _.intValue(), "integer")

@@ -29,11 +29,11 @@ import parsecat.stream.PagedStream
 
 trait CharacterParsers extends Combinators {
   final def parseText[A](parser: TextParser[A], text: PagedStream[Char], info: String): Either[ParseError[TextPosition], A] = {
-    parser.parse(text, (), TextPosition(0, 1, 1), info)
+    parser.parse(text, new TextParserContext, TextPosition(0, 1, 1), info)
   }
 
   final def parseText[A](parser: TextParser[A], text: PagedStream[Char]): Either[ParseError[TextPosition], A] = {
-    parser.parse(text, (), TextPosition(0, 1, 1))
+    parser.parse(text, new TextParserContext, TextPosition(0, 1, 1))
   }
 
   /**
@@ -41,39 +41,19 @@ trait CharacterParsers extends Combinators {
     * Returns the parsed character.
     */
   final def satisfy(p: Char => Boolean): TextParser[Char] = {
-    ParserT[Id, PagedStream[Char], Unit, TextPosition, Char]((pos, input, context, info) => {
+    ParserT[Id, PagedStream[Char], TextParserContext, TextPosition, Char]((pos, input, context, info) => {
       input.apply(pos.pos) match {
         case Right((ch, nextInput)) =>
           if (p(ch)) {
             val newPos = pos.getNextPosition(ch)
             ParseOutput(newPos, nextInput, context, ch).asRight
           } else {
-            ParseError(pos, s"unexpected character '$ch'", info).asLeft
+            context.error(pos, s"unexpected character '$ch'", info).asLeft
           }
         case Left(e) =>
-          ParseError(pos, e, info).asLeft
+          context.error(pos, e, info).asLeft
       }
     })
-  }
-
-  /**
-    * The parser which succeeds for a string that equals to the given string.
-    * Returns the parsed string.
-    */
-  final def string(s: String): TextParser[String] = {
-    ParserT[Id, PagedStream[Char], Unit, TextPosition, String]((pos, input, context, info) => {
-      input.slice(s.length, pos.pos) match {
-        case Right((actual, nextInput)) =>
-          if (s.contentEquals(actual)) {
-            ParseOutput(pos.getNextPosition(s), nextInput, context, s).asRight
-          } else {
-            ParseError(pos, s"input doesn't match value '$s'", info).asLeft
-          }
-        case Left(e) =>
-          ParseError(pos, e, info).asLeft
-      }
-    })
-//    stringify(s.map(char(_)).foldRight(parserTPure[Id, String, Unit, List[Char]](Nil))((x, xs) => bindCons(x, xs)))
   }
 
   /**
@@ -160,11 +140,6 @@ trait CharacterParsers extends Combinators {
     * The parser which succeeds if the end of line occurs. Returns a newline character.
     */
   lazy val eol: TextParser[Char] = newline <+> crlf
-
-  /**
-    * Skip zero or more spaces, tabs and end of lines in any combination.
-    */
-  lazy val delimiters: TextParser[Unit] = skipMany(space <+> tab <+> eol)
 
   /**
     * Transforms the given parser which produces a list of characters into the parser

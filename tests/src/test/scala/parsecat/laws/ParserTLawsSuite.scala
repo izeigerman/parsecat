@@ -43,8 +43,8 @@ class ParserTLawsSuite extends CatsSuite {
     Eq.instance((x: TextParser[A], y: TextParser[A]) => {
       strings.forall(s => {
         val pos = TextPosition(0, 1, 1)
-        val xr = x.runParserT(pos, s, (), "")
-        val yr = y.runParserT(pos, s, (), "")
+        val xr = x.runParserT(pos, s, new TextParserContext, "")
+        val yr = y.runParserT(pos, s, new TextParserContext, "")
         (xr, yr) match {
           case (Right(x), Right(y)) => x.pos == y.pos && x.output == y.output
           case (x, y) => x == y
@@ -67,7 +67,7 @@ class ParserTLawsSuite extends CatsSuite {
   implicit val cogenForParseError: Cogen[ParseError[TextPosition]] = Cogen(_ => 0L)
 
   implicit val arbitraryForTextParserCharToChar: Arbitrary[TextParser[Char => Char]] = {
-    val ff = ParserT[Id, PagedStream[Char], Unit, TextPosition, Char => Char]((pos, input, context, _) => {
+    val ff = ParserT[Id, PagedStream[Char], TextParserContext, TextPosition, Char => Char]((pos, input, context, _) => {
       ParseOutput(pos, input, context, (_: Char) => ' ').asRight
     })
 //    val failure = ParserT.parserTError[Id, String, Unit, TextPosition, Char => Char](ParseError(TextPosition(0, 1, 1), "", ""))
