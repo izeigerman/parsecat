@@ -24,7 +24,7 @@ package parsecat.parsers
 import cats.Id
 import cats.implicits._
 import parsecat._
-import parsecat.stream.PagedStream
+import parsecat.stream.{PagedStream, SlicableSequence}
 
 trait StringParsers extends CharacterParsers {
   /**
@@ -85,7 +85,7 @@ trait StringParsers extends CharacterParsers {
           if (sequence.length == 0 && !canBeEmpty) {
             context.error(pos, "no characters satisfied the condition", info).asLeft
           } else {
-            val str = PagedStream.slicableToCharSequence(sequence)
+            val str = SlicableSequence.toCharSequence(sequence)
             val newPos = pos.getNextPosition(str)
             ParseOutput(newPos, nextInput, context, str).asRight
           }

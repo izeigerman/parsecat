@@ -24,7 +24,6 @@ package parsecat.stream
 import java.io.Reader
 
 import cats.implicits._
-import PagedStream._
 
 private[parsecat] final case class PagedStream[A](stream: Stream[Array[A]],
                                                   pageOffset: Long,
@@ -142,53 +141,4 @@ object PagedStream {
   implicit def fromStringIterable(i: Iterable[String]): PagedStream[Char] = fromStringIterator(i.iterator)
 
   implicit def fromCharArrayIterable(i: Iterable[Array[Char]]): PagedStream[Char] = fromCharArrayIterator(i.iterator)
-
-  sealed trait SlicableSequence[A] {
-    def length: Int
-    def apply(index: Int): A
-    def slice(start: Int, end: Int): SlicableSequence[A]
-  }
-
-  final case class SlicedSequence[A](original: Array[A], startIdx: Int, endIdx: Int) extends SlicableSequence[A] {
-    override def length: Int = Math.min(endIdx, original.length) - startIdx
-    override def apply(index: Int): A = original(startIdx + index)
-    override def slice(start: Int, end: Int): SlicableSequence[A] =
-      SlicedSequence(original, start + startIdx, end + startIdx)
-  }
-
-  final case class CompositeSlicableSequence[A](first: SlicableSequence[A],
-                                                second: SlicableSequence[A]) extends SlicableSequence[A] {
-    override def length: Int = first.length + second.length
-
-    override def apply(index: Int): A = {
-      if (index >= first.length) {
-        second(index - first.length)
-      } else {
-        first(index)
-      }
-    }
-
-    override def slice(start: Int, end: Int): SlicableSequence[A] = {
-      if (start >= first.length) {
-        second.slice(start - first.length, end - first.length)
-      } else {
-        if (end > first.length) {
-          CompositeSlicableSequence(first.slice(start, first.length), second.slice(0, end - first.length))
-        } else {
-          first.slice(start, end)
-        }
-      }
-    }
-  }
-
-  final case class SlicableCharSequence(seq: SlicableSequence[Char]) extends CharSequence {
-    override def length: Int = seq.length
-    override def subSequence(start: Int, end: Int): CharSequence = SlicableCharSequence(seq.slice(start, end))
-    override def charAt(index: Int): Char = seq(index)
-    override def toString: String = (0 until length).map(charAt).mkString
-  }
-
-  implicit def slicableToCharSequence(seq: SlicableSequence[Char]): CharSequence = {
-    SlicableCharSequence(seq)
-  }
 }
