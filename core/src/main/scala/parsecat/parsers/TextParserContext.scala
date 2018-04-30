@@ -22,7 +22,6 @@
 package parsecat.parsers
 
 import parsecat.ParseError
-import parsecat.stream.PagedStream
 
 final class TextParserContext {
 

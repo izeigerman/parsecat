@@ -47,30 +47,71 @@ trait StringParsers extends CharacterParsers {
     // stringify(s.map(char(_)).foldRight(parserTPure[Id, String, Unit, List[Char]](Nil))((x, xs) => bindCons(x, xs)))
   }
 
+  /**
+    * Parses one or more characters that satisfies the given predicate.
+    * This is similar to [[many1()]] combinator but for chars only. Unlike `many1` which relies
+    * on the properties of monadic binding, this parser doesn't introduce an overhead
+    * of any sort.
+    */
   def satisfyMany1(p: Char => Boolean): TextParser[CharSequence] = {
     satisfyMany(p, false)
   }
 
+  /**
+    * Parses zero or more characters that satisfies the given predicate.
+    * Similar to [[many()]] combinator but for chars only. Unlike `many` which relies
+    * on the properties of monadic binding, this parser doesn't introduce an overhead
+    * of any sort.
+    */
   def satisfyMany(p: Char => Boolean): TextParser[CharSequence] = {
     satisfyMany(p, true)
   }
 
+  /**
+    * Parses zero or more characters as long as the given predicate is NOT satisfied. The first
+    * character that satisfies the predicate will interrupt this parser and won't be included into
+    * the result.
+    */
   final def anyCharTill(end: Char => Boolean): TextParser[CharSequence] = satisfyMany(ch => !end(ch))
 
+  /**
+    * Similar to [[oneOf()]] but returns zero or more characters.
+    */
   final def oneOfMany(str: String): TextParser[CharSequence] = satisfyMany(c => str.contains(c))
 
+  /**
+    * Similar to [[oneOf()]] but returns zero or more characters.
+    */
   final def oneOfMany(str: List[Char]): TextParser[CharSequence] = satisfyMany(c => str.contains(c))
 
+  /**
+    * Similar to [[oneOf()]] but returns one or more characters.
+    */
   final def oneOfMany1(str: String): TextParser[CharSequence] = satisfyMany1(c => str.contains(c))
 
+  /**
+    * Similar to [[oneOf()]] but returns one or more characters.
+    */
   final def oneOfMany1(str: List[Char]): TextParser[CharSequence] = satisfyMany1(c => str.contains(c))
 
+  /**
+    * Similar to [[noneOf()]] but returns zero or more characters.
+    */
   final def noneOfMany(str: String): TextParser[CharSequence] = satisfyMany(c => !str.contains(c))
 
+  /**
+    * Similar to [[noneOf()]] but returns zero or more characters.
+    */
   final def noneOfMany(str: List[Char]): TextParser[CharSequence] = satisfyMany(c => !str.contains(c))
 
+  /**
+    * Similar to [[noneOf()]] but returns one or more characters.
+    */
   final def noneOfMany1(str: String): TextParser[CharSequence] = satisfyMany1(c => !str.contains(c))
 
+  /**
+    * Similar to [[noneOf()]] but returns one or more characters.
+    */
   final def noneOfMany1(str: List[Char]): TextParser[CharSequence] = satisfyMany1(c => !str.contains(c))
 
   /**
