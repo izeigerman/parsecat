@@ -62,4 +62,22 @@ class StringParsersSuite extends FunSuite with StringParsers with PropertyChecks
     result.right.get.pos shouldBe TextPosition(4, 1, 5)
     result.right.get.output.toString shouldBe "test"
   }
+
+  test("String.noneOfMany.success") {
+    val result1 = noneOfMany("123").runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
+    val result2 = noneOfMany(List('1', '2', '3')).runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
+    result1.right.get.pos shouldBe TextPosition(4, 1, 5)
+    result1.right.get.output.toString shouldBe "test"
+    result2.right.get.pos shouldBe result1.right.get.pos
+    result2.right.get.output.toString shouldBe result1.right.get.output.toString
+  }
+
+  test("String.oneOfMany.success") {
+    val result1 = oneOfMany("test").runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
+    val result2 = oneOfMany(List('t', 'e', 's', 't')).runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
+    result1.right.get.pos shouldBe TextPosition(4, 1, 5)
+    result1.right.get.output.toString shouldBe "test"
+    result2.right.get.pos shouldBe result1.right.get.pos
+    result2.right.get.output.toString shouldBe result1.right.get.output.toString
+  }
 }
