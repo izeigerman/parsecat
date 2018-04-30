@@ -77,7 +77,7 @@ trait JsonParsers extends NumericParsers {
   lazy val jsValue: TextParser[JsValue] = choice(toJsValue(jsString), toJsValue(jsNull), toJsValue(jsBoolean),
     toJsValue(jsInt), toJsValue(jsLong), toJsValue(jsDouble), toJsValue(jsArray), toJsValue(jsObject))
 
-  private lazy val quotedString: TextParser[String] = stringify(between(char('"'), char('"'), many(noneOf(List('"')))))
+  private lazy val quotedString: TextParser[String] = between(char('"'), char('"'), noneOfMany(List('"')).map(_.toString))
 
   private def toJsValue[A <: JsValue](p: TextParser[A]): TextParser[JsValue] = p.map(_.asInstanceOf[JsValue])
 

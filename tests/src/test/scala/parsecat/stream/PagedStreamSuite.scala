@@ -28,26 +28,25 @@ import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.{FunSuite, Matchers}
-import parsecat.stream.PagedStream._
 
 class PagedStreamSuite extends FunSuite with Matchers with PropertyChecks {
 
   val seed = Seed(1)
 
-  test("PagedStream[Char].fromInputStream.success") {
+  test("PagedStream[Char].fromReader.success") {
     val str = stringGen(PagedStream.PageSize * 2).apply(Gen.Parameters.default, seed).get
-    val offset = PagedStream.PageSize - 5
-    val length = 10
-
     val page = PagedStream.fromReader(new StringReader(str))
     page.isSinglePage shouldBe false
 
+    val offset = PagedStream.PageSize - 5
+    val length = 10
+
     val result1 = page.slice(1, offset)
-    toSlicableCharSequence(result1.right.get._1).toString shouldBe str.substring(offset, offset + 1)
+    SlicableSequence.toCharSequence(result1.right.get._1).toString shouldBe str.substring(offset, offset + 1)
     result1.right.get._2 shouldBe page
 
     val result2 = page.slice(length, offset)
-    toSlicableCharSequence(result2.right.get._1).toString shouldBe str.substring(offset, offset + length)
+    SlicableSequence.toCharSequence(result2.right.get._1).toString shouldBe str.substring(offset, offset + length)
 
     val nextPage = result2.right.get._2
     nextPage should not be page
@@ -55,6 +54,32 @@ class PagedStreamSuite extends FunSuite with Matchers with PropertyChecks {
     val result3 = nextPage.apply(PagedStream.PageSize + 1)
     result3.right.get._1 shouldBe str.charAt(PagedStream.PageSize + 1)
     result3.right.get._2 shouldBe nextPage
+  }
+
+  test("PagedStream[Char].fromCharArray.success") {
+    testPagedStreamSuccess(s => PagedStream.fromCharArray(s.toCharArray))
+  }
+
+  test("PagedStream[Char].fromStringIterable.success") {
+    testPagedStreamSuccess(s => PagedStream.fromStringIterable(s.grouped(100).toSeq))
+  }
+
+  def testPagedStreamSuccess(streamCreator: String => PagedStream[Char]): Unit = {
+    val str = stringGen(PagedStream.PageSize * 2).apply(Gen.Parameters.default, seed).get
+    val page = streamCreator(str)
+    val offset = PagedStream.PageSize - 5
+    val length = 10
+
+    val result1 = page.slice(1, offset)
+    SlicableSequence.toCharSequence(result1.right.get._1).toString shouldBe str.substring(offset, offset + 1)
+
+    val result2 = page.slice(length, offset)
+    SlicableSequence.toCharSequence(result2.right.get._1).toString shouldBe str.substring(offset, offset + length)
+
+    val nextPage = result2.right.get._2
+
+    val result3 = nextPage.apply(PagedStream.PageSize + 10)
+    result3.right.get._1 shouldBe str.charAt(PagedStream.PageSize + 10)
   }
 
   test("PagedStream[Char].fromReader.failure") {
@@ -80,7 +105,7 @@ class PagedStreamSuite extends FunSuite with Matchers with PropertyChecks {
     val length = 10
 
     val result1 = page.slice(length, offset)
-    toSlicableCharSequence(result1.right.get._1).toString shouldBe str.substring(offset, offset + length)
+    SlicableSequence.toCharSequence(result1.right.get._1).toString shouldBe str.substring(offset, offset + length)
 
     val nextPage = result1.right.get._2
     nextPage should not be page
@@ -88,19 +113,6 @@ class PagedStreamSuite extends FunSuite with Matchers with PropertyChecks {
     val result3 = nextPage.apply(PagedStream.PageSize + 1)
     result3.right.get._1 shouldBe str.charAt(PagedStream.PageSize + 1)
     result3.right.get._2 should not be nextPage
-  }
-
-  test("PagedStream.CompositeSlicableSequence") {
-    val seq1 = SlicedSequence(Array('t', 'e', 's', 't'), 0, 4)
-    val seq2 = SlicedSequence(Array('1', '2', '3'), 0, 3)
-    val compositeSequence = CompositeSlicableSequence(seq1, seq2)
-    compositeSequence.length shouldBe 7
-    compositeSequence.subSequence(4, 6).toString shouldBe "12"
-    compositeSequence.subSequence(3, 6).toString shouldBe "t12"
-    compositeSequence.subSequence(2, 4).toString shouldBe "st"
-    compositeSequence.charAt(3) shouldBe 't'
-    compositeSequence.charAt(4) shouldBe '1'
-    toSlicableCharSequence(compositeSequence).toString shouldBe "test123"
   }
 
   def stringGen(length: Int): Gen[String] = Gen.listOfN(length, Gen.alphaChar).map(_.mkString)

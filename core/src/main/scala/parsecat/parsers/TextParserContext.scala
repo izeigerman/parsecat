@@ -21,27 +21,16 @@
  */
 package parsecat.parsers
 
-import java.io.StringReader
+import parsecat.ParseError
 
-import cats.implicits._
-import parsecat._
-import org.scalatest.{FunSuite, Matchers}
-import org.scalatest.prop.PropertyChecks
+final class TextParserContext {
 
-class RegexParsersSuite extends FunSuite with PropertyChecks with Matchers {
-  test("Text.regex.success") {
-    val result = parsecat.parsers.regex.regex("t.{2}t".r)
-      .runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
-    result.right.get.pos shouldBe TextPosition(4, 1, 5)
-    result.right.get.output shouldBe "test"
-  }
+  private var cachedError: Option[ParseError[TextPosition]] = None
 
-  test("Text.regex.failure") {
-    parsecat.parsers.regex.parseText(parsecat.parsers.regex.regex("t.{2}t".r), "123") shouldBe
-      ParseError(TextPosition(0, 1, 1), "input doesn't match regex 't.{2}t'", "[Parsecat] ").asLeft
-    parsecat.parsers.regex.parseText(parsecat.parsers.regex.regex("t.{2}t".r), "1234") shouldBe
-      ParseError(TextPosition(0, 1, 1), "input doesn't match regex 't.{2}t'", "[Parsecat] ").asLeft
-    parsecat.parsers.regex.parseText(parsecat.parsers.regex.regex("t.{2}t".r), new StringReader("1234")) shouldBe
-      ParseError(TextPosition(0, 1, 1), "can't apply regex on a multi-page stream", "[Parsecat] ").asLeft
+  def error[A](pos: TextPosition, message: => String, info: => String): ParseError[TextPosition]= {
+    if (cachedError.isEmpty || cachedError.get.pos.pos < pos.pos) {
+      cachedError = Some(ParseError(pos, message, info))
+    }
+    cachedError.get
   }
 }

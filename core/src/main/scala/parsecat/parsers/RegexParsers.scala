@@ -34,15 +34,15 @@ trait RegexParsers extends CharacterParsers {
     * Returns a string that matched the regular expression. Supported only for single-page streams.
     */
   final def regex(r: Regex): TextParser[String] = {
-    ParserT[Id, PagedStream[Char], Unit, TextPosition, String]((pos, input, context, info) => {
+    ParserT[Id, PagedStream[Char], TextParserContext, TextPosition, String]((pos, input, context, info) => {
       if (input.isSinglePage) {
         val remainder = input.pageRemainder(pos.pos)
         val regexMatch = r.findPrefixOf(remainder)
         regexMatch
           .map(out => ParseOutput(pos.getNextPosition(out), input, context, out).asRight)
-          .getOrElse(ParseError(pos, s"input doesn't match regex '$r'", info).asLeft)
+          .getOrElse(context.error(pos, s"input doesn't match regex '$r'", info).asLeft)
       } else {
-        ParseError(pos, "can't apply regex on a multi-page stream", info).asLeft
+        context.error(pos, "can't apply regex on a multi-page stream", info).asLeft
       }
     })
   }

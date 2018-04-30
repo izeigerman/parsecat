@@ -24,52 +24,51 @@ package parsecat.stream
 import java.io.Reader
 
 import cats.implicits._
-import PagedStream._
 
 private[parsecat] final case class PagedStream[A](stream: Stream[Array[A]],
                                                   pageOffset: Long,
                                                   isSinglePage: Boolean) {
 
   def apply(offset: Long): Either[String, (A, PagedStream[A])] = {
-    if (offset < pageOffset) {
-      "offset can't be smaller than the current stream position".asLeft
-    } else if (isEmpty) {
-      "unexpected end of input".asLeft
-    } else {
-      val current = stream.head
-      val localOffset = (offset - pageOffset).toInt
-      if (localOffset >= current.length) {
-        nextPage.apply(offset)
-      } else {
-        (current(localOffset), this).asRight
-      }
-    }
+    applyF[A](offset, (stream, head, localOffset) => (head(localOffset), stream).asRight)
   }
 
   def slice(length: Int, offset: Long): Either[String, (SlicableSequence[A], PagedStream[A])] = {
-    if (offset < pageOffset) {
-      "offset can't be smaller than the current stream position".asLeft
-    } else if (isEmpty) {
-      "unexpected end of input".asLeft
-    } else {
-      val current = stream.head
-      val localOffset = (offset - pageOffset).toInt
-      if (localOffset >= current.length) {
-        nextPage.slice(length, offset)
+    applyF[SlicableSequence[A]](offset, (stream, head, localOffset) => {
+      val currentSlice = SlicedSequence(head, localOffset, localOffset + length)
+      if (currentSlice.length < length) {
+        val nextPageOffset = stream.pageOffset + head.length
+        val nextResult = stream.nextPage.slice(length - currentSlice.length, nextPageOffset)
+        nextResult match {
+          case Right((slice, page)) => (CompositeSlicableSequence(currentSlice, slice), page).asRight
+          case e @ Left(_) => e
+        }
       } else {
-        val currentSlice = SlicedSequence(current, localOffset, localOffset + length)
-        if (currentSlice.length < length) {
-          val nextPageOffset = pageOffset + current.length
-          val nextResult = nextPage.slice(length - currentSlice.length, nextPageOffset)
+        (currentSlice, stream).asRight
+      }
+    })
+  }
+
+  def takeWhile(offset: Long, p: A => Boolean): Either[String, (SlicableSequence[A], PagedStream[A])] = {
+    applyF[SlicableSequence[A]](offset, (stream, head, localOffset) => {
+      var endIdx = localOffset
+      while (endIdx < head.length && p(head(endIdx))) endIdx += 1
+      val currentSlice = SlicedSequence(head, localOffset, endIdx)
+      if (endIdx >= head.length) {
+        val nPage = stream.nextPage
+        if (!nPage.isEmpty) {
+          val nextResult = nPage.takeWhile(stream.pageOffset + head.length, p)
           nextResult match {
             case Right((slice, page)) => (CompositeSlicableSequence(currentSlice, slice), page).asRight
             case e @ Left(_) => e
           }
         } else {
-          (currentSlice, this).asRight
+          (currentSlice, stream).asRight
         }
+      } else {
+        (currentSlice, stream).asRight
       }
-    }
+    })
   }
 
   def pageRemainder(offset: Long): SlicableSequence[A] = {
@@ -79,8 +78,22 @@ private[parsecat] final case class PagedStream[A](stream: Stream[Array[A]],
 
   def isEmpty: Boolean = stream.isEmpty
 
-  def nextPage: PagedStream[A] = {
-    PagedStream(stream.tail, pageOffset + stream.head.length, isSinglePage)
+  def nextPage: PagedStream[A] = PagedStream(stream.tail, pageOffset + stream.head.length, isSinglePage)
+
+  private def applyF[B](offset: Long, f: (PagedStream[A], Array[A], Int) => Either[String, (B, PagedStream[A])]): Either[String, (B, PagedStream[A])] = {
+    if (offset < pageOffset) {
+      "offset can't be smaller than the current stream position".asLeft
+    } else if (isEmpty) {
+      "unexpected end of input".asLeft
+    } else {
+      val head = stream.head
+      val localOffset = (offset - pageOffset).toInt
+      if (localOffset >= head.length) {
+        nextPage.applyF(offset, f)
+      } else {
+        f(this, head, localOffset)
+      }
+    }
   }
 }
 
@@ -128,53 +141,4 @@ object PagedStream {
   implicit def fromStringIterable(i: Iterable[String]): PagedStream[Char] = fromStringIterator(i.iterator)
 
   implicit def fromCharArrayIterable(i: Iterable[Array[Char]]): PagedStream[Char] = fromCharArrayIterator(i.iterator)
-
-  sealed trait SlicableSequence[A] {
-    def length: Int
-    def apply(index: Int): A
-    def slice(start: Int, end: Int): SlicableSequence[A]
-  }
-
-  final case class SlicedSequence[A](original: Array[A], startIdx: Int, endIdx: Int) extends SlicableSequence[A] {
-    override def length: Int = Math.min(endIdx, original.length) - startIdx
-    override def apply(index: Int): A = original(startIdx + index)
-    override def slice(start: Int, end: Int): SlicableSequence[A] =
-      SlicedSequence(original, start + startIdx, end + startIdx)
-  }
-
-  final case class CompositeSlicableSequence[A](first: SlicableSequence[A],
-                                                second: SlicableSequence[A]) extends SlicableSequence[A] {
-    override def length: Int = first.length + second.length
-
-    override def apply(index: Int): A = {
-      if (index >= first.length) {
-        second(index - first.length)
-      } else {
-        first(index)
-      }
-    }
-
-    override def slice(start: Int, end: Int): SlicableSequence[A] = {
-      if (start >= first.length) {
-        second.slice(start - first.length, end - first.length)
-      } else {
-        if (end > first.length) {
-          CompositeSlicableSequence(first.slice(start, first.length), second.slice(0, end - first.length))
-        } else {
-          first.slice(start, end)
-        }
-      }
-    }
-  }
-
-  final case class SlicableCharSequence(seq: SlicableSequence[Char]) extends CharSequence {
-    override def length: Int = seq.length
-    override def subSequence(start: Int, end: Int): CharSequence = SlicableCharSequence(seq.slice(start, end))
-    override def charAt(index: Int): Char = seq(index)
-    override def toString: String = (0 until length).map(charAt).mkString
-  }
-
-  implicit def toSlicableCharSequence(seq: SlicableSequence[Char]): SlicableCharSequence = {
-    SlicableCharSequence(seq)
-  }
 }

@@ -24,7 +24,7 @@ package parsecat.parsers
 import cats.implicits._
 import parsecat._
 
-trait NumericParsers extends CharacterParsers {
+trait NumericParsers extends StringParsers {
 
   lazy val long: TextParser[Long] = bigDecimalToNumeric(_.isValidLong, _.longValue(), "long")
   lazy val integer: TextParser[Int] = bigDecimalToNumeric(_.isValidInt, _.intValue(), "integer")
@@ -35,29 +35,39 @@ trait NumericParsers extends CharacterParsers {
   lazy val float: TextParser[Float] =
     bigDecimalToNumeric(_ => true, _.floatValue(), "float") <+> infinityOrNaN(_.toFloat)
 
-  lazy val bigInt: TextParser[BigInt] = {
-    stringify(signedDigits).map(BigInt.apply)
-  }
+  lazy val bigInt: TextParser[BigInt] = signedDigits map BigInt.apply
 
-  lazy val bigDecimal: TextParser[BigDecimal] = {
-    stringify(signedDigitsWithCommaAndExponent) map BigDecimal.apply
-  }
+  lazy val bigDecimal: TextParser[BigDecimal] = signedDigitsWithPointAndExponent map BigDecimal.apply
 
-  private lazy val digits: TextParser[List[Char]] = many1(digit)
+  private lazy val digits: TextParser[CharSequence] = satisfyMany1(_.isDigit)
 
-  private lazy val signedDigits: TextParser[List[Char]] = {
+  private lazy val signedDigits: TextParser[String] = {
     for {
       sign <- option('+', char('-') <+> char('+'))
       ds <- digits
-    } yield sign :: ds
+    } yield sign + ds.toString
   }
 
-  private lazy val signedDigitsWithCommaAndExponent: TextParser[List[Char]] = {
+  private lazy val afterDecimalPoint: TextParser[String] = {
+    for {
+      point <- char('.')
+      ds <- digits
+    } yield point + ds.toString
+  }
+
+  private lazy val exponent: TextParser[String] = {
+    for {
+      exp <- oneOf(List('e', 'E'))
+      ds <- digits
+    } yield exp + ds.toString
+  }
+
+  private lazy val signedDigitsWithPointAndExponent: TextParser[String] = {
     for {
       ds <- signedDigits
-      afterComma <- option(Nil, bindCons(char('.'), digits))
-      exponent <- option(Nil, bindCons(oneOf(List('e', 'E')), digits))
-    } yield ds ++ afterComma ++ exponent
+      afterPoint <- option("", afterDecimalPoint)
+      exponent <- option("", exponent)
+    } yield ds + afterPoint + exponent
   }
 
   private def infinityOrNaN[A](parse: String => A): TextParser[A] = {

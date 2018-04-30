@@ -19,29 +19,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package parsecat.parsers
+package parsecat.stream
 
-import java.io.StringReader
-
-import cats.implicits._
-import parsecat._
 import org.scalatest.{FunSuite, Matchers}
-import org.scalatest.prop.PropertyChecks
 
-class RegexParsersSuite extends FunSuite with PropertyChecks with Matchers {
-  test("Text.regex.success") {
-    val result = parsecat.parsers.regex.regex("t.{2}t".r)
-      .runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
-    result.right.get.pos shouldBe TextPosition(4, 1, 5)
-    result.right.get.output shouldBe "test"
+class SlicableSequenceSuite extends FunSuite with Matchers {
+
+  test("CompositeSlicableSequence") {
+    val seq1 = SlicedSequence(Array('t', 'e', 's', 't'), 0, 4)
+    val seq2 = SlicedSequence(Array('1', '2', '3'), 0, 3)
+    val compositeSequence = CompositeSlicableSequence(seq1, seq2)
+    compositeSequence.length shouldBe 7
+    compositeSequence.subSequence(4, 6).toString shouldBe "12"
+    compositeSequence.subSequence(3, 6).toString shouldBe "t12"
+    compositeSequence.subSequence(2, 4).toString shouldBe "st"
+    compositeSequence.charAt(3) shouldBe 't'
+    compositeSequence.charAt(4) shouldBe '1'
+    SlicableSequence.toCharSequence(compositeSequence).toString shouldBe "test123"
   }
 
-  test("Text.regex.failure") {
-    parsecat.parsers.regex.parseText(parsecat.parsers.regex.regex("t.{2}t".r), "123") shouldBe
-      ParseError(TextPosition(0, 1, 1), "input doesn't match regex 't.{2}t'", "[Parsecat] ").asLeft
-    parsecat.parsers.regex.parseText(parsecat.parsers.regex.regex("t.{2}t".r), "1234") shouldBe
-      ParseError(TextPosition(0, 1, 1), "input doesn't match regex 't.{2}t'", "[Parsecat] ").asLeft
-    parsecat.parsers.regex.parseText(parsecat.parsers.regex.regex("t.{2}t".r), new StringReader("1234")) shouldBe
-      ParseError(TextPosition(0, 1, 1), "can't apply regex on a multi-page stream", "[Parsecat] ").asLeft
-  }
 }

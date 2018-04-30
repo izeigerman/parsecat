@@ -28,31 +28,18 @@ import org.scalatest.prop.PropertyChecks
 import parsecat._
 
 class CharacterParsersSuite extends FunSuite with CharacterParsers with PropertyChecks with Matchers {
-  test("Text.satisfy.success") {
+  test("Character.satisfy.success") {
     forAll(Gen.alphaLowerChar) { (c: Char) =>
-      val result = satisfy(_.isLetter).runParserT(TextPosition(0, 1, 1), c.toString, (), "")
+      val result = satisfy(_.isLetter).runParserT(TextPosition(0, 1, 1), c.toString, new TextParserContext, "")
       result.right.get.pos shouldBe TextPosition(1, 1, 2)
       result.right.get.output shouldBe c
     }
   }
 
-  test("Text.satisfy.failure") {
+  test("Character.satisfy.failure") {
     forAll(Gen.numChar) { (c: Char) =>
       parseText(satisfy(_.isLetter), c.toString) shouldBe
         ParseError(TextPosition(0, 1, 1), s"unexpected character '$c'", "[Parsecat] ").asLeft
     }
-  }
-
-  test("Text.string.success") {
-    val result = string("test").runParserT(TextPosition(0, 1, 1), "test123", (), "")
-    result.right.get.pos shouldBe TextPosition(4, 1, 5)
-    result.right.get.output shouldBe "test"
-  }
-
-  test("Text.string.failure") {
-    parseText(string("test"), "123") shouldBe
-      ParseError(TextPosition(0, 1, 1), "unexpected end of input", "[Parsecat] ").asLeft
-    parseText(string("test"), "1234") shouldBe
-      ParseError(TextPosition(0, 1, 1), "input doesn't match value 'test'", "[Parsecat] ").asLeft
   }
 }
