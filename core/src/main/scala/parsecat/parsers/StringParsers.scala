@@ -48,7 +48,7 @@ trait StringParsers extends CharacterParsers {
   }
 
   /**
-    * Parses one or more characters that satisfies the given predicate.
+    * Parses one or more characters that satisfy the given predicate.
     * This is similar to [[many1()]] combinator but for chars only. Unlike `many1` which relies
     * on the properties of monadic binding, this parser doesn't introduce an overhead
     * of any sort.
