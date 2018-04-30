@@ -28,7 +28,7 @@ import org.scalatest.prop.PropertyChecks
 import parsecat._
 
 class CharacterParsersSuite extends FunSuite with CharacterParsers with PropertyChecks with Matchers {
-  test("Text.satisfy.success") {
+  test("Character.satisfy.success") {
     forAll(Gen.alphaLowerChar) { (c: Char) =>
       val result = satisfy(_.isLetter).runParserT(TextPosition(0, 1, 1), c.toString, new TextParserContext, "")
       result.right.get.pos shouldBe TextPosition(1, 1, 2)
@@ -36,7 +36,7 @@ class CharacterParsersSuite extends FunSuite with CharacterParsers with Property
     }
   }
 
-  test("Text.satisfy.failure") {
+  test("Character.satisfy.failure") {
     forAll(Gen.numChar) { (c: Char) =>
       parseText(satisfy(_.isLetter), c.toString) shouldBe
         ParseError(TextPosition(0, 1, 1), s"unexpected character '$c'", "[Parsecat] ").asLeft

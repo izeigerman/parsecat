@@ -37,7 +37,7 @@ private[parsecat] final case class PagedStream[A](stream: Stream[Array[A]],
     applyF[SlicableSequence[A]](offset, (stream, head, localOffset) => {
       val currentSlice = SlicedSequence(head, localOffset, localOffset + length)
       if (currentSlice.length < length) {
-        val nextPageOffset = pageOffset + head.length
+        val nextPageOffset = stream.pageOffset + head.length
         val nextResult = stream.nextPage.slice(length - currentSlice.length, nextPageOffset)
         nextResult match {
           case Right((slice, page)) => (CompositeSlicableSequence(currentSlice, slice), page).asRight
@@ -57,7 +57,7 @@ private[parsecat] final case class PagedStream[A](stream: Stream[Array[A]],
       if (endIdx >= head.length) {
         val nPage = stream.nextPage
         if (!nPage.isEmpty) {
-          val nextResult = nPage.takeWhile(pageOffset + head.length, p)
+          val nextResult = nPage.takeWhile(stream.pageOffset + head.length, p)
           nextResult match {
             case Right((slice, page)) => (CompositeSlicableSequence(currentSlice, slice), page).asRight
             case e @ Left(_) => e

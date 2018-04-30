@@ -27,16 +27,39 @@ import org.scalatest.prop.PropertyChecks
 import parsecat.ParseError
 
 class StringParsersSuite extends FunSuite with StringParsers with PropertyChecks with Matchers {
-  test("Text.string.success") {
+  test("String.string.success") {
     val result = string("test").runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
     result.right.get.pos shouldBe TextPosition(4, 1, 5)
     result.right.get.output shouldBe "test"
   }
 
-  test("Text.string.failure") {
+  test("String.string.failure") {
     parseText(string("test"), "123") shouldBe
       ParseError(TextPosition(0, 1, 1), "unexpected end of input", "[Parsecat] ").asLeft
     parseText(string("test"), "1234") shouldBe
       ParseError(TextPosition(0, 1, 1), "input doesn't match value 'test'", "[Parsecat] ").asLeft
+  }
+
+  test("String.satisfyMany.success") {
+    val result = satisfyMany(_.isLetter).runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
+    result.right.get.pos shouldBe TextPosition(4, 1, 5)
+    result.right.get.output.toString shouldBe "test"
+  }
+
+  test("String.satisfyMany1.success") {
+    val result = satisfyMany1(_.isLetter).runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
+    result.right.get.pos shouldBe TextPosition(4, 1, 5)
+    result.right.get.output.toString shouldBe "test"
+  }
+
+  test("String.satisfyMany1.failure") {
+    val result = satisfyMany1(_.isDigit).runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
+    result shouldBe ParseError(TextPosition(0, 1, 1), "no characters satisfied the condition", "").asLeft
+  }
+
+  test("String.anyCharTill.failure") {
+    val result = anyCharTill(_.isDigit).runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
+    result.right.get.pos shouldBe TextPosition(4, 1, 5)
+    result.right.get.output.toString shouldBe "test"
   }
 }
