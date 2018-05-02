@@ -8,26 +8,26 @@
 ## Usage
 Supports Scala 2.11 and 2.12.
 ```scala
-libraryDependencies += "com.github.izeigerman" %% "parsecat-core" % "0.1"
+libraryDependencies += "com.github.izeigerman" %% "parsecat-core" % "0.2.0"
 // to include JSON parsers
-libraryDependencies += "com.github.izeigerman" %% "parsecat-json" % "0.1"
+libraryDependencies += "com.github.izeigerman" %% "parsecat-json" % "0.2.0"
 ```
 
 ### Text parser
 The text parser is just a type alias for a specialized `ParsetT`:
 ```scala
-type TextParser[A] = ParserT[Id, String, Unit, TextPosition, A]
+type TextParser[A] = ParserT[Id, PagedStream[Char], TextParserContext, TextPosition, A]
 ```
 It supports a 2-dimensional position tracking and has a variety of string and character implementations.
 
-#### Character parsers
+#### Character and String parsers
 Before starting to use the parser the following imports are required:
 ```scala
 scala> import cats.implicits._
 import cats.implicits._
 
-scala> import parsecat.parsers.text._
-import parsecat.parsers.text._
+scala> import parsecat.parsers.string._
+import parsecat.parsers.string._
 ```
 Let's parse the following string:
 ```scala
@@ -37,7 +37,7 @@ str: String = Hello World
 A parser for this string can be defined in a couple of ways. I.e.:
 ```scala
 scala> val parserA = andThen(string("Hello") <* space, string("World"))
-parserA: parsecat.ParserT[cats.Id,String,Unit,parsecat.parsers.TextPosition,(String, String)] = parsecat.ParserT@509ec4f6
+parserA: parsecat.ParserT[cats.Id,parsecat.stream.PagedStream[Char],parsecat.parsers.TextParserContext,parsecat.parsers.TextPosition,(String, String)] = parsecat.ParserT@6f92758f
 ```
 The parser above relies on applicative properties of `ParserT` and uses the `<*` operator to parse both: string "Hello" and a whitespace, but then keeps only a result from the first parser. `andThen` - is one of many combinator functions that are included into this library. The full list can be found [here](https://github.com/izeigerman/parsecat/blob/master/core/src/main/scala/parsecat/Combinators.scala). The result of applying of this parser to the test string is the following:
 ```scala
@@ -47,7 +47,7 @@ res1: Either[parsecat.ParseError[parsecat.parsers.TextPosition],(String, String)
 There is also a different style of combining parsers together - a monadic one. The exactly same parser can be defined differently:
 ```scala
 scala> val parserM = andThen(string("Hello"), space >> string("World"))
-parserM: parsecat.ParserT[cats.Id,String,Unit,parsecat.parsers.TextPosition,(String, String)] = parsecat.ParserT@1b718371
+parserM: parsecat.ParserT[cats.Id,parsecat.stream.PagedStream[Char],parsecat.parsers.TextParserContext,parsecat.parsers.TextPosition,(String, String)] = parsecat.ParserT@7daf7131
 ```
 This time we rely on monadic properties of `ParserT` and use the `>>` operator - a special binding operator which discards the result of the first action. The result produced by this parser is completely the same:
 ```scala
@@ -56,6 +56,9 @@ res2: Either[parsecat.ParseError[parsecat.parsers.TextPosition],(String, String)
 ```
 When the parsing is unsuccessful the error will contain a very detailed information about what went wrong:
 ```scala
+scala> import parsecat.parsers.regex._
+import parsecat.parsers.regex._
+
 scala> val str = """
      | Hello
      | World
@@ -66,10 +69,8 @@ Hello
 World
 "
 
-
 scala> val parser = andThen(eol >> string("Hello"), eol >> regex("o.+d".r))
-parser: parsecat.ParserT[cats.Id,String,Unit,parsecat.parsers.TextPosition,(String, String)] = parsecat.ParserT@2a030f21
-
+parser: parsecat.ParserT[cats.Id,parsecat.stream.PagedStream[Char],parsecat.parsers.TextParserContext,parsecat.parsers.TextPosition,(String, String)] = parsecat.ParserT@789c90f4
 
 scala> parseText(parser, str)
 res4: Either[parsecat.ParseError[parsecat.parsers.TextPosition],(String, String)] = Left(parsecat.ParseError: [Parsecat] (row 3, column 1): input doesn't match regex 'o.+d')
@@ -83,11 +84,12 @@ res5: Either[parsecat.ParseError[parsecat.parsers.TextPosition],List[Char]] = Ri
 scala> parseText(manyTill(anyChar, char('b')), "aaab")
 res6: Either[parsecat.ParseError[parsecat.parsers.TextPosition],List[Char]] = Right(List(a, a, a))
 ```
+**Note:** in examples above we used `many` and `manyTill` combinators. Although this approach looks appealing, it causes creation of potentially big number of monadic bindings at runtime. This may lead to a considerable performance degradation. Use these combinators carefully and consider using the string-specific alternatives (`satisfyMany`, `anyCharTill`, `oneOfMany`, etc.) instead. The same is true for combinators `many1`, `skipMany` and `skipMany1`.
 ```scala
 scala> parseText(char('a') <+> char('b'), "baba")
 res7: Either[parsecat.ParseError[parsecat.parsers.TextPosition],Char] = Right(b)
 ```
-Note: in the last example we used the `<+>` operator. This is a monoid associative operator or a sum (contrary to a product provided by the applicative functor). It first applies a parser to its left and if the parsing is unsuccessful, the parser on the right side of the expression will be applied instead. The same can be expressed with a help of the `orElse` combinator:
+**Note:** in the last example we used the `<+>` operator. This is a monoid associative operator or a sum (contrary to a product provided by the applicative functor). It first applies a parser to its left and if the parsing is unsuccessful, the parser on the right side of the expression will be applied instead. The same can be expressed with a help of the `orElse` combinator:
 ```scala
 scala> parseText(orElse(char('a'), char('b')), "baba")
 res9: Either[parsecat.ParseError[parsecat.parsers.TextPosition],Char] = Right(b)
@@ -142,3 +144,4 @@ parseJson(jsonStr)
 
 res12: Either[parsecat.ParseError[parsecat.parsers.TextPosition],parsecat.parsers.json.JsValue] = Right(JsObject(Map(field1 -> JsString(test), field2 -> JsArray(List(JsInt(1), JsInt(2), JsInt(3))), field3 -> JsObject(Map(field4 -> JsBoolean(true), field5 -> JsNull, field6 -> JsArray(List(JsObject(Map(field7 -> JsDouble(1.234))), JsObject(Map(field8 -> JsBoolean(false))))))))))
 ```
+**NOTE:** this parser was created as an example and a reference implementation and should never be used in a real project. Although the general parsing performance has been significantly improved in the version `0.2.0`, it still can't compete with any modern hand-written JSON parser out there. Its performance is the same as `scala-parser-combinators` version of JSON parser, which is deprecated by now.
