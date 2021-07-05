@@ -20,19 +20,20 @@
  * THE SOFTWARE.
  */
 
-val CatsVersion = "1.1.0"
-val ScalaTestVersion = "3.0.5"
-val DisciplineVersion = "0.8"
+val CatsVersion = "2.6.1"
+val CatsTestkitVersion = "2.1.5"
+val ScalaTestVersion = "3.2.9"
+val DisciplineVersion = "1.1.5"
 
 val CommonSettings = Seq(
   organization := "com.github.izeigerman",
-  scalaVersion := "2.12.2",
-  crossScalaVersions := Seq("2.11.11", scalaVersion.value),
-  version := "0.2.1-SNAPSHOT",
+  scalaVersion := "2.13.6",
+  crossScalaVersions := Seq("2.12.14", scalaVersion.value),
+  version := "0.3.0-SNAPSHOT",
 
   organizationHomepage := Some(url("https://github.com/izeigerman")),
   homepage := Some(url("https://github.com/izeigerman/parsecat")),
-  licenses in ThisBuild += ("MIT License", url("http://opensource.org/licenses/MIT")),
+  ThisBuild / licenses += ("MIT License", url("http://opensource.org/licenses/MIT")),
   developers := Developer("izeigerman", "Iaroslav Zeigerman", "", url("https://github.com/izeigerman")) :: Nil,
   scmInfo := Some(ScmInfo(
     browseUrl = url("https://github.com/izeigerman/parsecat.git"),
@@ -45,13 +46,16 @@ val CommonSettings = Seq(
     "-feature",
     "-language:postfixOps",
     "-language:implicitConversions",
-    "-language:higherKinds",
-    "-Ypartial-unification")
+    "-language:higherKinds") ++ (
+      if (scalaVersion.value.startsWith("2.12")) Seq("-Ypartial-unification") 
+      else if(scalaVersion.value.startsWith("2.13")) Seq("-Wunused:imports")
+      else Set.empty[String]
+    )
 )
 
 val NoPublishSettings = CommonSettings ++ Seq(
   publishArtifact := false,
-  skip in publish := true,
+  publish / skip := true,
   publish := {}
 )
 
@@ -74,10 +78,10 @@ val ParsecatSettings = CommonSettings ++ Seq(
 
 val ParsecatTestsSettings = NoPublishSettings ++ Seq(
   libraryDependencies ++= Seq(
-    "org.typelevel" %% "cats-laws" % CatsVersion % "test->*",
-    "org.typelevel" %% "cats-testkit" % CatsVersion % "test->*",
-    "org.scalatest" %% "scalatest" % ScalaTestVersion % "test->*",
-    "org.typelevel" %% "discipline" % DisciplineVersion % "test->*"
+    "org.typelevel" %% "cats-laws" % CatsVersion % "test",
+    "org.typelevel" %% "cats-testkit-scalatest" % CatsTestkitVersion % "test",
+    "org.scalatest" %% "scalatest" % ScalaTestVersion % "test",
+    "org.typelevel" %% "discipline-core" % DisciplineVersion % "test"
   )
 )
 

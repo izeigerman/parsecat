@@ -21,13 +21,14 @@
  */
 package parsecat.parsers
 
-import org.scalatest.{FunSuite, Matchers}
 import cats.implicits._
 import org.scalacheck.Gen
-import org.scalatest.prop.PropertyChecks
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import parsecat._
 
-class CharacterParsersSuite extends FunSuite with CharacterParsers with PropertyChecks with Matchers {
+class CharacterParsersSuite extends AnyFunSuite with ScalaCheckPropertyChecks with CharacterParsers with Matchers {
   test("Character.satisfy.success") {
     forAll(Gen.alphaLowerChar) { (c: Char) =>
       val result = satisfy(_.isLetter).runParserT(TextPosition(0, 1, 1), c.toString, new TextParserContext, "")

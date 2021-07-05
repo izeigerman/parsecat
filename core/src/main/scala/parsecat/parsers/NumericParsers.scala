@@ -26,14 +26,14 @@ import parsecat._
 
 trait NumericParsers extends StringParsers {
 
-  lazy val long: TextParser[Long] = bigDecimalToNumeric(_.isValidLong, _.longValue(), "long")
-  lazy val integer: TextParser[Int] = bigDecimalToNumeric(_.isValidInt, _.intValue(), "integer")
-  lazy val short: TextParser[Short] = bigDecimalToNumeric(_.isValidShort, _.shortValue(), "short")
-  lazy val byte: TextParser[Byte] = bigDecimalToNumeric(_.isValidByte, _.byteValue(), "byte")
+  lazy val long: TextParser[Long] = bigDecimalToNumeric(_.isValidLong, _.longValue, "long")
+  lazy val integer: TextParser[Int] = bigDecimalToNumeric(_.isValidInt, _.intValue, "integer")
+  lazy val short: TextParser[Short] = bigDecimalToNumeric(_.isValidShort, _.shortValue, "short")
+  lazy val byte: TextParser[Byte] = bigDecimalToNumeric(_.isValidByte, _.byteValue, "byte")
   lazy val double: TextParser[Double] =
-    bigDecimalToNumeric(_ => true, _.doubleValue(), "double") <+> infinityOrNaN(_.toDouble)
+    bigDecimalToNumeric(_ => true, _.doubleValue, "double") <+> infinityOrNaN(_.toDouble)
   lazy val float: TextParser[Float] =
-    bigDecimalToNumeric(_ => true, _.floatValue(), "float") <+> infinityOrNaN(_.toFloat)
+    bigDecimalToNumeric(_ => true, _.floatValue, "float") <+> infinityOrNaN(_.toFloat)
 
   lazy val bigInt: TextParser[BigInt] = signedDigits map BigInt.apply
 

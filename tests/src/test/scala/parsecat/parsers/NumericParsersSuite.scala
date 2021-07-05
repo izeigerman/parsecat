@@ -24,11 +24,12 @@ package parsecat.parsers
 import cats.implicits._
 import org.scalacheck.Gen
 import org.scalacheck.Gen.Choose
-import org.scalatest._
-import org.scalatest.prop.PropertyChecks
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import parsecat.ParseError
 
-class NumericParsersSuite extends FunSuite with NumericParsers with PropertyChecks with Matchers {
+class NumericParsersSuite extends AnyFunSuite with NumericParsers with ScalaCheckPropertyChecks with Matchers {
 
   lazy val reallyBigInt = "31273812367126716238716387123"
 
@@ -53,7 +54,7 @@ class NumericParsersSuite extends FunSuite with NumericParsers with PropertyChec
   test("Numeric.double.success") {
     val generator: Gen[String] = Gen.oneOf("-1.23456", "+1.23456E78", "1.23456", "123456e78", "NaN", "Infinity")
     forAll(generator) { (num: String) =>
-      parseText(double, num.toString) match {
+      parseText(double, num) match {
         case Right(actual) if actual.isNaN => num shouldBe "NaN"
         case Right(actual) if actual.isInfinity => num shouldBe "Infinity"
         case o => o shouldBe num.toDouble.asRight
@@ -64,7 +65,7 @@ class NumericParsersSuite extends FunSuite with NumericParsers with PropertyChec
   test("Numeric.float.success") {
     val generator: Gen[String] = Gen.oneOf("-1.23456", "+1.23456E3", "1.23456", "123456e2", "NaN", "Infinity")
     forAll(generator) { (num: String) =>
-      parseText(float, num.toString) match {
+      parseText(float, num) match {
         case Right(actual) if actual.isNaN => num shouldBe "NaN"
         case Right(actual) if actual.isInfinity => num shouldBe "Infinity"
         case o => o shouldBe num.toFloat.asRight

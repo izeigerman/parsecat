@@ -21,12 +21,12 @@
  */
 package parsecat.parsers
 
+import org.scalatest.funsuite.AnyFunSuite
 import cats.implicits._
-import org.scalatest.{FunSuite, Matchers}
-import org.scalatest.prop.PropertyChecks
+import org.scalatest.matchers.should.Matchers
 import parsecat.ParseError
 
-class StringParsersSuite extends FunSuite with StringParsers with PropertyChecks with Matchers {
+class StringParsersSuite extends AnyFunSuite with StringParsers with Matchers {
   test("String.string.success") {
     val result = string("test").runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
     result.right.get.pos shouldBe TextPosition(4, 1, 5)

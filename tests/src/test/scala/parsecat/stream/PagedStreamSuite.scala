@@ -22,14 +22,13 @@
 package parsecat.stream
 
 import java.io.StringReader
-
 import cats.implicits._
 import org.scalacheck.Gen
 import org.scalacheck.rng.Seed
-import org.scalatest.prop.PropertyChecks
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class PagedStreamSuite extends FunSuite with Matchers with PropertyChecks {
+class PagedStreamSuite extends AnyFunSuite with Matchers {
 
   val seed = Seed(1)
 

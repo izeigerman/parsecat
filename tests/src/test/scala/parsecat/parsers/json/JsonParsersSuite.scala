@@ -22,11 +22,12 @@
 package parsecat.parsers.json
 
 import cats.implicits._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import parsecat.ParseError
 import parsecat.parsers.TextPosition
 
-class JsonParsersSuite extends FunSuite with JsonParsers with Matchers {
+class JsonParsersSuite extends AnyFunSuite with JsonParsers with Matchers {
 
   test("Json.jsParser.success") {
     val jsonStr =

@@ -22,13 +22,12 @@
 package parsecat.parsers
 
 import java.io.StringReader
-
 import cats.implicits._
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 import parsecat._
-import org.scalatest.{FunSuite, Matchers}
-import org.scalatest.prop.PropertyChecks
 
-class RegexParsersSuite extends FunSuite with PropertyChecks with Matchers {
+class RegexParsersSuite extends AnyFunSuite with Matchers {
   test("Text.regex.success") {
     val result = parsecat.parsers.regex.regex("t.{2}t".r)
       .runParserT(TextPosition(0, 1, 1), "test123", new TextParserContext, "")
