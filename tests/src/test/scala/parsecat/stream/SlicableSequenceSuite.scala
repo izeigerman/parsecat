@@ -21,9 +21,10 @@
  */
 package parsecat.stream
 
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class SlicableSequenceSuite extends FunSuite with Matchers {
+class SlicableSequenceSuite extends AnyFunSuite with Matchers {
 
   test("CompositeSlicableSequence") {
     val seq1 = SlicedSequence(Array('t', 'e', 's', 't'), 0, 4)
