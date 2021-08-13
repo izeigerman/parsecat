@@ -4,3 +4,8 @@ project/target
 target
 core/target
 json/target
+.vscode
+.metals
+.bloop
+metals.sbt
+.bsp
