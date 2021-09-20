@@ -29,7 +29,7 @@ val CommonSettings = Seq(
   organization := "com.github.izeigerman",
   scalaVersion := "2.13.6",
   crossScalaVersions := Seq("2.12.14", scalaVersion.value),
-  version := "0.3.0-SNAPSHOT",
+  version := "0.3.0",
 
   organizationHomepage := Some(url("https://github.com/izeigerman")),
   homepage := Some(url("https://github.com/izeigerman/parsecat")),
